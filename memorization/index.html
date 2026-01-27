@@ -224,19 +224,19 @@ function updatePreview() {
 function drawHistograms() {
   buildProcessedData();
 
-  const canvas = document.getElementById("histogramCanvas");
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // remove empty/undefined conditions
+  processedData = processedData.filter(d => d.Condition && d.Condition.trim() !== "");
 
   const groups = {};
   processedData.forEach(d => {
-    if (!groups[d.Condition]) groups[d.Condition] = [];
-    groups[d.Condition].push(d.NumberCorrect);
+    const cond = d.Condition.trim();
+    if (!groups[cond]) groups[cond] = [];
+    groups[cond].push(d.NumberCorrect);
   });
 
   const conds = Object.keys(groups);
   if (conds.length !== 2) {
-    alert("Histogram requires exactly two conditions.");
+    alert(`Histogram requires exactly two conditions. Found: ${conds.join(", ")}`);
     return;
   }
 
