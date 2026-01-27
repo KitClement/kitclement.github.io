@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Letter Recall Classroom Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 40px auto;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.4em;
+    }
+    label {
+      display: block;
+      margin-top: 6px;
+    }
+    select, input[type="checkbox"] {
+      margin-top: 4px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 25px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background: #f4f4f4;
+    }
+    canvas {
+      margin-top: 30px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Letter Recall Classroom Tool</h1>
+
+<p>
+Scores student recall based on the fixed sequence:
+<strong>JFKCIAFBIUSASATGPAGREIBMNBACPR</strong>
+</p>
+
+<input type="file" id="fileInput" accept=".csv">
+
+<h2>Column selection</h2>
+<label>Name column:
+  <select id="nameCol"></select>
+</label>
+
+<label>Letters guessed column:
+  <select id="lettersCol"></select>
+</label>
+
+<label>Condition column:
+  <select id="conditionCol"></select>
+</label>
+
+<h2>Privacy options</h2>
+<label>
+  <input type="checkbox" id="includeName" checked>
+  Include Name
+</label>
+
+<label>
+  <input type="checkbox" id="includeLetters" checked>
+  Include Letters guessed
+</label>
+
+<h2>Histogram options</h2>
+<label>
+  <input type="checkbox" id="showMean">
+  Show mean
+</label>
+
+<label>
+  <input type="checkbox" id="showMedian">
+  Show median
+</label>
+
+<button onclick="drawHistograms()">Show Histograms</button>
+<button onclick="downloadCSV()">Download Scored CSV</button>
+
+<div id="preview"></div>
+<canvas id="histogramCanvas" width="950" height="520"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+const CORRECT = "JFKCIAFBIUSASATGPAGREIBMNBACPR";
+
+const CONDITION_LABELS = {
+  JFK: "Chunking",
+  JFKC: "No chunking"
+};
+
+let rawData = [];
+let processedData = [];
+
+// ------------------ Scoring ------------------
+function countCorrectFromStart(studentLetters) {
+  if (!studentLetters) return 0;
+  const cleaned = studentLetters
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "");
+
+  let count = 0;
+  for (let i = 0; i < Math.min(cleaned.length, CORRECT.length); i++) {
+    if (cleaned[i] === CORRECT[i]) count++;
+    else break;
+  }
+  return count;
+}
+
+// ------------------ Parsing ------------------
+document.getElementById("fileInput").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  Papa.parse(file, {
+    skipEmptyLines: true,
+    complete: function(results) {
+      const rows = results.data;
+
+      const headers = rows[0];      // row 1
+      const dataRows = rows.slice(3); // row 4+
+
+      rawData = dataRows.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      });
+
+      populateDropdowns(headers);
+      setDefaultSelections(headers);
+      updatePreview();
+    }
+  });
+});
+
+// ------------------ UI helpers ------------------
+function populateDropdowns(headers) {
+  ["nameCol", "lettersCol", "conditionCol"].forEach(id => {
+    const select = document.getElementById(id);
+    select.innerHTML = "";
+    headers.forEach(h => {
+      const option = document.createElement("option");
+      option.value = h;
+      option.textContent = h;
+      select.appendChild(option);
+    });
+  });
+}
+
+function setDefaultSelections(headers) {
+  const defaults = { nameCol: "R", lettersCol: "AE", conditionCol: "AF" };
+  Object.entries(defaults).forEach(([id, val]) => {
+    if (headers.includes(val)) document.getElementById(id).value = val;
+  });
+}
+
+function buildProcessedData() {
+  const nameCol = document.getElementById("nameCol").value;
+  const lettersCol = document.getElementById("lettersCol").value;
+  const conditionCol = document.getElementById("conditionCol").value;
+  const includeName = document.getElementById("includeName").checked;
+  const includeLetters = document.getElementById("includeLetters").checked;
+
+  processedData = rawData.map(row => {
+    const out = {};
+    if (includeName) out.Name = row[nameCol];
+    if (includeLetters) out.Letters = row[lettersCol];
+    out.Condition = row[conditionCol];
+    out.NumberCorrect = countCorrectFromStart(row[lettersCol]);
+    return out;
+  });
+}
+
+function updatePreview() {
+  buildProcessedData();
+  const preview = document.getElementById("preview");
+  preview.innerHTML = "";
+
+  if (!processedData.length) return;
+
+  const table = document.createElement("table");
+  const headerRow = document.createElement("tr");
+  Object.keys(processedData[0]).forEach(k => {
+    const th = document.createElement("th");
+    th.textContent = k;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  processedData.slice(0, 10).forEach(row => {
+    const tr = document.createElement("tr");
+    Object.values(row).forEach(v => {
+      const td = document.createElement("td");
+      td.textContent = v ?? "";
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+
+  preview.appendChild(table);
+}
+
+["nameCol","lettersCol","conditionCol","includeName","includeLetters"]
+  .forEach(id => document.getElementById(id).addEventListener("change", updatePreview));
+
+// ------------------ Histogram ------------------
+function drawHistograms() {
+  buildProcessedData();
+
+  const canvas = document.getElementById("histogramCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const groups = {};
+  processedData.forEach(d => {
+    if (!groups[d.Condition]) groups[d.Condition] = [];
+    groups[d.Condition].push(d.NumberCorrect);
+  });
+
+  const conds = Object.keys(groups);
+  if (conds.length !== 2) {
+    alert("Histogram requires exactly two conditions.");
+    return;
+  }
+
+  const bins = Array.from({length:31},(_,i)=>i);
+  const counts = conds.map(c => {
+    const arr = Array(31).fill(0);
+    groups[c].forEach(v => arr[v]++);
+    return arr;
+  });
+
+  const maxCount = Math.max(...counts.flat());
+  const pad = 60;
+  const plotH = (canvas.height - pad*3)/2;
+  const plotW = canvas.width - pad*2;
+  const bw = plotW / bins.length;
+
+  counts.forEach((arr, idx) => {
+    const y0 = pad + idx*(plotH+pad);
+    const label = CONDITION_LABELS[conds[idx]] || conds[idx];
+
+    ctx.fillStyle="#000";
+    ctx.fillText(label, pad, y0-10);
+
+    arr.forEach((c,i)=>{
+      const h = (c/maxCount)*plotH;
+      ctx.fillStyle="#4a90e2";
+      ctx.fillRect(pad+i*bw, y0+plotH-h, bw-1, h);
+    });
+
+    const vals = groups[conds[idx]];
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const med = vals.slice().sort((a,b)=>a-b)[Math.floor(vals.length/2)];
+
+    if (document.getElementById("showMean").checked) {
+      drawLine(mean, y0, plotH, "solid");
+    }
+    if (document.getElementById("showMedian").checked) {
+      drawLine(med, y0, plotH, "dashed");
+    }
+  });
+
+  function drawLine(val,y0,h,style){
+    const x = pad + val*bw;
+    ctx.strokeStyle="#000";
+    ctx.setLineDash(style==="dashed"?[6,4]:[]);
+    ctx.beginPath();
+    ctx.moveTo(x,y0);
+    ctx.lineTo(x,y0+h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ------------------ Download ------------------
+function downloadCSV() {
+  if (!processedData.length) return alert("Upload data first.");
+  const csv = Papa.unparse(processedData);
+  const blob = new Blob([csv],{type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "letter_recall_scored.csv";
+  a.click();
+}
+</script>
+
+</body>
+</html>
