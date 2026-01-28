@@ -31,3 +31,7 @@ body {
   background-color: orange;
   color: white;
 }
+
+.bar {
+  touch-action: none;
+}
