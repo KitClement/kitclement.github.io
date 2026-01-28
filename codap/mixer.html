@@ -18,18 +18,31 @@
 <div class="pgs">
   <h1>Categorical Mixer Builder</h1>
 
-  <button id="addCategory">Add Category</button>
+  <div style="margin-bottom: 1em;">
+    <button id="removeCat">−</button>
+    <input
+      type="number"
+      id="catCount"
+      value="4"
+      min="1"
+      style="width:60px; text-align:center;"
+    >
+    <button id="addCat">+</button>
+    <span>Categories</span>
+  </div>
 
-  <table id="mixerTable" border="1" cellpadding="6">
-    <thead>
-      <tr>
-        <th>Category</th>
-        <th>Count</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div
+    id="chart"
+    style="
+      display:flex;
+      align-items:flex-end;
+      gap:16px;
+      height:300px;
+      border-left:1px solid #ccc;
+      border-bottom:1px solid #ccc;
+      padding:10px;
+    "
+  ></div>
 
   <h3>CODAP Sampler Values</h3>
   <textarea
