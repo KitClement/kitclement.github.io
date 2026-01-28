@@ -60,6 +60,8 @@ Scores student recall based on the fixed sequence:
   Number of header rows:
   <input type="number" id="headerRows" value="3" min="0" style="width:60px;">
 </label>
+
+<div id="controls" style="display:none;">
   
 <h2>Column selection</h2>
 <label>Name column:
@@ -74,7 +76,7 @@ Scores student recall based on the fixed sequence:
   <select id="conditionCol"></select>
 </label>
 
-<h2>Privacy options</h2>
+<h2>Export Data to CSV</h2>
 <label>
   <input type="checkbox" id="includeName" checked>
   Include Name
@@ -85,7 +87,9 @@ Scores student recall based on the fixed sequence:
   Include Letters guessed
 </label>
 
-<h2>Histogram options</h2>
+<button onclick="downloadCSV()">Download Scored CSV</button>
+  
+<h2>Histogram</h2>
 <label>
   <input type="checkbox" id="showMean">
   Show mean
@@ -116,10 +120,6 @@ Scores student recall based on the fixed sequence:
   Use pooled SD
 </label>
 
-<button id="showHistograms">Show Histograms</button>
-<button onclick="downloadCSV()">Download Scored CSV</button>
-<button onclick="copyToClipboard()">Copy Data to Clipboard (for CODAP)</button>
-
 <div id="preview"></div>
 <canvas id="histogramCanvas" width="950" height="520"></canvas>
 
@@ -132,6 +132,7 @@ Scores student recall based on the fixed sequence:
   font-size: 14px;
   display: none;
 ">
+</div>
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -198,6 +199,9 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       populateDropdowns(headers);
       setDefaultSelections(headers);
       updatePreview();
+
+      document.getElementById("controls").style.display = "block";
+      drawHistograms();
     }
   });
 });
@@ -442,28 +446,25 @@ function downloadCSV() {
   a.click();
 }
 
-document.getElementById("showHistograms").addEventListener("click", () => {
-  if (!processedData || processedData.length === 0) {
-    alert("Please upload a CSV file first.");
-    return;
-  }
-  drawHistograms();
-});
-
 [
+  "nameCol",
+  "lettersCol",
+  "conditionCol",
+  "includeName",
+  "includeLetters",
   "showMean",
   "showMedian",
   "showSD",
   "showStats",
-  "showTTest",
+  "runTTest",
   "usePooled"
 ].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
+
   el.addEventListener("change", () => {
-    if (processedData.length) {
-      drawHistograms();
-    }
+    updatePreview();
+    drawHistograms();
   });
 });
 
