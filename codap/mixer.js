@@ -1,59 +1,74 @@
-const categoriesEl = document.getElementById("categories");
-const outputEl     = document.getElementById("output");
-const addBtn       = document.getElementById("addCategory");
-const copyBtn      = document.getElementById("copyOutput");
+const tableBody = document.querySelector("#mixerTable tbody");
+const output = document.getElementById("output");
 
-let categoryList = [];
+let categories = [];
 
 function render() {
-  categoriesEl.innerHTML = "";
-  categoryList.forEach((c, i) => {
-    const div = document.createElement("div");
-    div.className = "stack";
-    div.innerHTML = `
-      <input type="text" value="${c.name}" placeholder="Category">
-      <input type="number" value="${c.count}" min="0">
-      <button data-i="${i}" class="remove">✕</button>
-    `;
-    categoriesEl.appendChild(div);
+  tableBody.innerHTML = "";
 
-    div.querySelector("input[type=number]").onchange = e => {
-      c.count = +e.target.value;
+  categories.forEach((cat, i) => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>
+        <input type="text" value="${cat.name}">
+      </td>
+      <td>
+        <input type="number" min="0" value="${cat.count}" style="width:80px;">
+      </td>
+      <td>
+        <button data-i="${i}">✕</button>
+      </td>
+    `;
+
+    const [nameInput, countInput] = row.querySelectorAll("input");
+
+    nameInput.oninput = e => {
+      cat.name = e.target.value;
       updateOutput();
     };
-    div.querySelector("input[type=text]").onchange = e => {
-      c.name = e.target.value;
+
+    countInput.oninput = e => {
+      cat.count = Number(e.target.value);
       updateOutput();
     };
-    div.querySelector(".remove").onclick = e => {
-      categoryList.splice(i, 1);
+
+    row.querySelector("button").onclick = () => {
+      categories.splice(i, 1);
       render();
     };
+
+    tableBody.appendChild(row);
   });
+
   updateOutput();
 }
 
 function updateOutput() {
-  let values = [];
-  categoryList.forEach(c => {
-    for (let i=0; i<c.count; i++) values.push(c.name || "");
+  const values = [];
+  categories.forEach(cat => {
+    for (let i = 0; i < cat.count; i++) {
+      if (cat.name.trim() !== "") {
+        values.push(cat.name.trim());
+      }
+    }
   });
-  outputEl.value = values.join(", ");
+  output.value = values.join(", ");
 }
 
-addBtn.onclick = () => {
-  categoryList.push({ name: "", count: 1 });
+document.getElementById("addCategory").onclick = () => {
+  categories.push({ name: "", count: 1 });
   render();
 };
 
-copyBtn.onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(outputEl.value);
-    alert("Copied!");
-  } catch (err) {
-    alert("Clipboard failed:");
-    console.error(err);
-  }
+document.getElementById("copyOutput").onclick = () => {
+  navigator.clipboard.writeText(output.value);
 };
+
+// start with 2 categories by default
+categories = [
+  { name: "A", count: 5 },
+  { name: "B", count: 5 }
+];
 
 render();
