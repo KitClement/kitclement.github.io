@@ -111,6 +111,11 @@ Scores student recall based on the fixed sequence:
   Show t-test results
 </label>
 
+<label style="margin-left:20px; display:none;" id="pooledWrapper">
+  <input type="checkbox" id="usePooled">
+  Use pooled SD
+</label>
+
 <button id="showHistograms">Show Histograms</button>
 <button onclick="downloadCSV()">Download Scored CSV</button>
 <button onclick="copyToClipboard()">Copy Data to Clipboard (for CODAP)</button>
@@ -118,6 +123,17 @@ Scores student recall based on the fixed sequence:
 <div id="preview"></div>
 <canvas id="histogramCanvas" width="950" height="520"></canvas>
 
+<div id="tTestResults" style="
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  display: none;
+">
+</div>
+  
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
 const CORRECT = "JFKCIAFBIUSASATGPAGREIBMNBACPR";
@@ -268,6 +284,11 @@ document.getElementById("showMean").addEventListener("change", e => {
     e.target.checked ? "block" : "none";
   drawHistograms();
 });
+
+document.getElementById("showTTest").addEventListener("change", e => {
+  document.getElementById("pooledWrapper").style.display =
+    e.target.checked ? "block" : "none";
+});
   
 // ------------------ Histogram ------------------
 function drawHistograms() {
@@ -395,6 +416,8 @@ function drawHistograms() {
     }
   });
 
+  renderTTestResults(groups, conds);
+  
   function drawLine(val, y0, h, style) {
     const x = pad + val * bw;
 
@@ -432,8 +455,17 @@ document.getElementById("showHistograms").addEventListener("click", () => {
   drawHistograms();
 });
 
-["showMean", "showMedian"].forEach(id => {
-  document.getElementById(id).addEventListener("change", () => {
+[
+  "showMean",
+  "showMedian",
+  "showSD",
+  "showStats",
+  "showTTest",
+  "usePooled"
+].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("change", () => {
     if (processedData.length) {
       drawHistograms();
     }
@@ -458,6 +490,149 @@ function skewness(arr, mean, sd) {
   return arr.reduce((a, b) => a + Math.pow((b - mean) / sd, 3), 0) * (n / ((n - 1) * (n - 2)));
 }
 
+function tCDF(t, df) {
+  // Abramowitz & Stegun approximation
+  const x = df / (df + t * t);
+  const a = 0.5 * df;
+  const b = 0.5;
+  let betacf = (x, a, b) => {
+    let m2, aa, c, d, del, h;
+    const MAXIT = 100;
+    const EPS = 3e-7;
+    const FPMIN = 1e-30;
+
+    c = 1;
+    d = 1 - (a + b) * x / (a + 1);
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    d = 1 / d;
+    h = d;
+
+    for (let m = 1; m <= MAXIT; m++) {
+      m2 = 2 * m;
+      aa = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c;
+      if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d;
+      h *= d * c;
+
+      aa = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1));
+      d = 1 + aa * d;
+      if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c;
+      if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d;
+      del = d * c;
+      h *= del;
+
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  };
+
+  const bt = Math.exp(
+    a * Math.log(x) +
+    b * Math.log(1 - x) -
+    Math.log(a) -
+    Math.log(beta(a, b))
+  );
+
+  const result =
+    t >= 0
+      ? 1 - 0.5 * bt * betacf(x, a, b)
+      : 0.5 * bt * betacf(x, a, b);
+
+  return result;
+}
+
+function beta(a, b) {
+  return Math.exp(logGamma(a) + logGamma(b) - logGamma(a + b));
+}
+
+function logGamma(z) {
+  const g = 7;
+  const p = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.13857109526572012,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7
+  ];
+  if (z < 0.5) return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
+  z -= 1;
+  let x = p[0];
+  for (let i = 1; i < g + 2; i++) x += p[i] / (z + i);
+  const t = z + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+
+function tTest(a, b, pooled = false) {
+  const mean = arr => arr.reduce((x,y)=>x+y,0)/arr.length;
+  const variance = arr => {
+    const m = mean(arr);
+    return arr.reduce((x,y)=>x+Math.pow(y-m,2),0)/(arr.length-1);
+  };
+
+  const m1 = mean(a), m2 = mean(b);
+  const v1 = variance(a), v2 = variance(b);
+  const n1 = a.length, n2 = b.length;
+
+  let se, df;
+
+  if (pooled) {
+    const sp2 = ((n1-1)*v1 + (n2-1)*v2) / (n1 + n2 - 2);
+    se = Math.sqrt(sp2 * (1/n1 + 1/n2));
+    df = n1 + n2 - 2;
+  } else {
+    se = Math.sqrt(v1/n1 + v2/n2);
+    df = Math.pow(v1/n1 + v2/n2,2) /
+         (Math.pow(v1/n1,2)/(n1-1) + Math.pow(v2/n2,2)/(n2-1));
+  }
+
+  const t = (m1 - m2) / se;
+  const p = 2 * (1 - tCDF(Math.abs(t), df));
+  const crit = Math.abs(tCDF(0.975, df)); // approx
+  const ci = [
+    (m1 - m2) - crit * se,
+    (m1 - m2) + crit * se
+  ];
+
+  return { t, df, se, p, diff: m1 - m2, ci };
+}
+
+function renderTTestResults(groups, conds) {
+  const container = document.getElementById("tTestResults");
+
+  if (!document.getElementById("showTTest").checked) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  const pooled = document.getElementById("usePooled").checked;
+  const res = tTest(groups[conds[0]], groups[conds[1]], pooled);
+
+  container.style.display = "block";
+  container.innerHTML = `
+    <strong>Two-Sample t-Test (${pooled ? "Pooled" : "Unpooled"})</strong><br><br>
+    <table style="border-collapse:collapse;">
+      <tr><td style="padding-right:12px;">Difference in means</td><td>${res.diff.toFixed(3)}</td></tr>
+      <tr><td>Standard error</td><td>${res.se.toFixed(3)}</td></tr>
+      <tr><td>t statistic</td><td>${res.t.toFixed(3)}</td></tr>
+      <tr><td>Degrees of freedom</td><td>${res.df.toFixed(2)}</td></tr>
+      <tr><td>p-value (two-sided)</td><td>${res.p.toFixed(4)}</td></tr>
+      <tr>
+        <td>95% CI for Δμ</td>
+        <td>[${res.ci[0].toFixed(3)}, ${res.ci[1].toFixed(3)}]</td>
+      </tr>
+    </table>
+  `;
+}
   
 </script>
 
