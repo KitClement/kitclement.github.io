@@ -96,7 +96,7 @@ Scores student recall based on the fixed sequence:
   Show median
 </label>
 
-<button onclick="drawHistograms()">Show Histograms</button>
+<button id="showHistograms">Show Histograms</button>
 <button onclick="downloadCSV()">Download Scored CSV</button>
 
 <div id="preview"></div>
@@ -159,7 +159,7 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
           name,
           letters,
           condition,
-        score: countCorrectLetters(letters)
+        score: countCorrectFromStart(letters)
         };
       });
 
