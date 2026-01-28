@@ -629,16 +629,27 @@ function renderTTestResults(groups, conds) {
   `;
 }
 
-function tInv(p, df, tol = 1e-6) {
-  let low = -10;
+function tInv(p, df, tol = 1e-8) {
+  if (p <= 0 || p >= 1) {
+    throw new Error("p must be between 0 and 1");
+  }
+
+  // exploit symmetry
+  if (p < 0.5) {
+    return -tInv(1 - p, df, tol);
+  }
+
+  let low = 0;
   let high = 10;
-  let mid;
+
+  // expand upper bound if needed
+  while (tCDF(high, df) < p) {
+    high *= 2;
+  }
 
   while (high - low > tol) {
-    mid = (low + high) / 2;
-    const cdf = tCDF(mid, df);
-
-    if (cdf < p) {
+    const mid = (low + high) / 2;
+    if (tCDF(mid, df) < p) {
       low = mid;
     } else {
       high = mid;
