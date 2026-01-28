@@ -20,6 +20,24 @@ function syncCategoryCount(n) {
   render();
 }
 
+function drawBar(bar, count, scale) {
+  bar.innerHTML = "";
+
+  if (count <= MAX_VISIBLE_BLOCKS) {
+    for (let j = 0; j < count; j++) {
+      const block = document.createElement("div");
+      block.style.height = `${scale - 1}px`;
+      block.style.marginTop = "1px";
+      block.style.background = "#4fa3d1";
+      bar.appendChild(block);
+    }
+  } else {
+    bar.style.background = "#4fa3d1";
+  }
+
+  bar.style.height = `${count * scale}px`;
+}
+
 function render() {
   chart.innerHTML = "";
 
@@ -47,19 +65,7 @@ function render() {
     bar.style.flexDirection = "column-reverse";
     bar.style.cursor = "ns-resize";
 
-
-    // Discrete blocks vs smooth bar
-    if (cat.count <= MAX_VISIBLE_BLOCKS) {
-      for (let j = 0; j < cat.count; j++) {
-        const block = document.createElement("div");
-        block.style.height = `${scale - 1}px`;
-        block.style.marginTop = "1px";
-        block.style.background = "#4fa3d1";
-        bar.appendChild(block);
-      }
-    } else {
-      bar.style.background = "#4fa3d1";
-    }
+    drawBar(bar, cat.count, scale);
 
     // Drag behavior
     let startY = 0;
@@ -85,13 +91,12 @@ function render() {
       if (newCount !== cat.count) {
         cat.count = newCount;
 
-        // Update only this bar visually instead of full render
         countLabel.textContent = cat.count;
-        bar.style.height = `${cat.count * scale}px`;
-
+        drawBar(bar, cat.count, scale);
         updateOutput();
       }
     });
+
 
     bar.addEventListener("pointerup", e => {
       draggingIndex = null;
