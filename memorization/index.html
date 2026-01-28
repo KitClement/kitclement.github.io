@@ -116,6 +116,11 @@
   Show summary statistics
 </label>
 
+<div id="preview"></div>
+<canvas id="histogramCanvas" width="950" height="520"></canvas>
+
+<h2>Hypothesis Testing</h2>
+  
 <label>
   <input type="checkbox" id="showTTest">
   Show t-test results
@@ -125,9 +130,6 @@
   <input type="checkbox" id="usePooled">
   Use pooled SD
 </label>
-
-<div id="preview"></div>
-<canvas id="histogramCanvas" width="950" height="520"></canvas>
 
 <div id="tTestResults" style="
   margin-top: 12px;
@@ -448,7 +450,7 @@ function downloadCSV() {
   const blob = new Blob([csv],{type:"text/csv"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "letter_recall_scored.csv";
+  a.download = "memorization_data.csv";
   a.click();
 }
 
