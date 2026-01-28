@@ -3,6 +3,40 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+h1, h2, h3 {
+      margin-top: 1.4em;
+    }
+
+label {
+  display: block;
+  margin-top: 6px;
+}
+select, input[type="checkbox"] {
+  margin-top: 4px;
+}
+button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+table {
+  border-collapse: collapse;
+  margin-top: 25px;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  text-align: left;
+}
+th {
+  background: #f4f4f4;
+}
+canvas {
+  margin-top: 30px;
+  border: 1px solid #ccc;
+    
 .pgs {
   padding-left:16px;
   padding-right:16px; 
