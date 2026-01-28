@@ -589,15 +589,15 @@ function tTest(a, b, pooled = false) {
          (Math.pow(v1/n1,2)/(n1-1) + Math.pow(v2/n2,2)/(n2-1));
   }
 
-  const t = (m1 - m2) / se;
+  const t = (m2 - m1) / se;
   const p = 2 * (1 - tCDF(Math.abs(t), df));
   const crit = Math.abs(tCDF(0.975, df)); // approx
   const ci = [
-    (m1 - m2) - crit * se,
-    (m1 - m2) + crit * se
+    (m2 - m1) - crit * se,
+    (m2 - m1) + crit * se
   ];
 
-  return { t, df, se, p, diff: m1 - m2, ci };
+  return { t, df, se, p, diff: m2 - m1, ci };
 }
 
 function renderTTestResults(groups, conds) {
