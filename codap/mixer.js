@@ -6,6 +6,10 @@ let categories = [];
 const MAX_VISIBLE_BLOCKS = 40;
 const CHART_HEIGHT = 260;
 
+let draggingIndex = null;
+let dragStartY = 0;
+let dragStartCount = 0;
+
 function syncCategoryCount(n) {
   while (categories.length < n) {
     categories.push({ name: `Cat ${categories.length + 1}`, count: 10 });
@@ -62,33 +66,46 @@ function render() {
     let startCount = 0;
 
     bar.addEventListener("pointerdown", e => {
+      draggingIndex = i;
+      dragStartY = e.clientY;
+      dragStartCount = cat.count;
+
       bar.setPointerCapture(e.pointerId);
-      startY = e.clientY;
-      startCount = cat.count;
     });
 
     bar.addEventListener("pointermove", e => {
-      if (!bar.hasPointerCapture(e.pointerId)) return;
+      if (draggingIndex !== i) return;
 
-      const delta = startY - e.clientY;
+      const delta = dragStartY - e.clientY;
       const newCount = Math.max(
         0,
-        Math.round(startCount + delta / scale)
+        Math.round(dragStartCount + delta / scale)
       );
 
       if (newCount !== cat.count) {
         cat.count = newCount;
-        render();
+
+        // Update only this bar visually instead of full render
+        countLabel.textContent = cat.count;
+        bar.style.height = `${cat.count * scale}px`;
+
+        updateOutput();
       }
     });
 
-bar.addEventListener("pointerup", e => {
-  bar.releasePointerCapture(e.pointerId);
-});
+    bar.addEventListener("pointerup", e => {
+      draggingIndex = null;
+      bar.releasePointerCapture(e.pointerId);
 
-bar.addEventListener("pointercancel", e => {
-  bar.releasePointerCapture(e.pointerId);
-});
+      // After drag finishes, re-render once to normalize scaling
+      render();
+    });
+
+    bar.addEventListener("pointercancel", e => {
+      draggingIndex = null;
+      bar.releasePointerCapture(e.pointerId);
+    });
+
 
 
     // Count input (updates on blur)
