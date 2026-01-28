@@ -150,6 +150,19 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
         return obj;
       });
 
+      processedData = rawData.map(row => {
+        const name = row[nameCol] || "";
+        const letters = (row[lettersCol] || "").toUpperCase().replace(/[^A-Z]/g, "");
+        const condition = (row[conditionCol] || "").trim();
+
+        return {
+          name,
+          letters,
+          condition,
+        score: countCorrectLetters(letters)
+        };
+      });
+
       populateDropdowns(headers);
       setDefaultSelections(headers);
       updatePreview();
@@ -238,6 +251,13 @@ function updatePreview() {
 function drawHistograms() {
   buildProcessedData();
 
+  const canvas = document.getElementById("histogramCanvas");
+  if (!canvas) {
+    alert("Histogram canvas not found.");
+    return;
+  }
+  const ctx = canvas.getContext("2d");
+  
   // remove empty/undefined conditions
   processedData = processedData.filter(d => d.Condition && d.Condition.trim() !== "");
 
@@ -256,8 +276,8 @@ function drawHistograms() {
   if (Object.keys(groups).length !== 2) {
     alert(
       `Histogram requires exactly two conditions.\n\nDetected: ${Object.keys(groups).join(", ")}`
-      );
-  return;
+    );
+    return;
   }
 
   const bins = Array.from({length:31},(_,i)=>i);
@@ -320,6 +340,14 @@ function downloadCSV() {
   a.download = "letter_recall_scored.csv";
   a.click();
 }
+
+document.getElementById("showHistograms").addEventListener("click", () => {
+  if (!processedData || processedData.length === 0) {
+    alert("Please upload a CSV file first.");
+    return;
+  }
+  drawHistograms();
+});
 </script>
 
 </body>
