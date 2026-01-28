@@ -32,7 +32,8 @@ picker.onchange = () => {
   const idx = +picker.value;
   const column = rows
     .map(r => r[idx])
-    .filter(v => v !== undefined && v !== "")
+    .map(v => v ? v.trim() : "")     // remove line breaks and whitespace
+    .filter(v => v !== "")           // remove empty rows
     .join(", ");
 
   colOut.value = column;
