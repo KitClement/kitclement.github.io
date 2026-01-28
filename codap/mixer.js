@@ -20,10 +20,11 @@ function syncCategoryCount(n) {
   render();
 }
 
-function drawBar(bar, count, scale) {
+function drawBar(bar, count, scale, useDiscrete) {
   bar.innerHTML = "";
+  bar.style.background = "";
 
-  if (count <= MAX_VISIBLE_BLOCKS) {
+  if (useDiscrete) {
     for (let j = 0; j < count; j++) {
       const block = document.createElement("div");
       block.style.height = `${scale - 1}px`;
@@ -43,6 +44,7 @@ function render() {
 
   const maxCount = Math.max(...categories.map(c => c.count), 1);
   const scale = CHART_HEIGHT / maxCount;
+  const useDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
 
   categories.forEach((cat, i) => {
     const wrapper = document.createElement("div");
@@ -65,7 +67,7 @@ function render() {
     bar.style.flexDirection = "column-reverse";
     bar.style.cursor = "ns-resize";
 
-    drawBar(bar, cat.count, scale);
+    drawBar(bar, cat.count, scale, useDiscrete);
 
     // Drag behavior
     let startY = 0;
@@ -92,7 +94,7 @@ function render() {
         cat.count = newCount;
 
         countLabel.textContent = cat.count;
-        drawBar(bar, cat.count, scale);
+        drawBar(bar, cat.count, scale, useDiscrete);
         updateOutput();
       }
     });
