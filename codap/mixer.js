@@ -36,11 +36,13 @@ function render() {
 
     // Bar container
     const bar = document.createElement("div");
+    bar.className = "bar";
     bar.style.width = "36px";
     bar.style.height = `${cat.count * scale}px`;
     bar.style.display = "flex";
     bar.style.flexDirection = "column-reverse";
     bar.style.cursor = "ns-resize";
+
 
     // Discrete blocks vs smooth bar
     if (cat.count <= MAX_VISIBLE_BLOCKS) {
@@ -56,25 +58,38 @@ function render() {
     }
 
     // Drag behavior
-    let startY, startCount;
-    bar.onmousedown = e => {
+    let startY = 0;
+    let startCount = 0;
+
+    bar.addEventListener("pointerdown", e => {
+      bar.setPointerCapture(e.pointerId);
       startY = e.clientY;
       startCount = cat.count;
+    });
 
-      document.onmousemove = e2 => {
-        const delta = startY - e2.clientY;
-        const newCount = Math.max(
-          0,
-          Math.round(startCount + delta / scale)
-        );
+    bar.addEventListener("pointermove", e => {
+      if (!bar.hasPointerCapture(e.pointerId)) return;
+
+      const delta = startY - e.clientY;
+      const newCount = Math.max(
+        0,
+        Math.round(startCount + delta / scale)
+      );
+
+      if (newCount !== cat.count) {
         cat.count = newCount;
         render();
-      };
+      }
+    });
 
-      document.onmouseup = () => {
-        document.onmousemove = null;
-      };
-    };
+bar.addEventListener("pointerup", e => {
+  bar.releasePointerCapture(e.pointerId);
+});
+
+bar.addEventListener("pointercancel", e => {
+  bar.releasePointerCapture(e.pointerId);
+});
+
 
     // Count input (updates on blur)
     const countInput = document.createElement("input");
