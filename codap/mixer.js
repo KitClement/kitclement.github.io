@@ -106,6 +106,13 @@ function render() {
       bar.releasePointerCapture(e.pointerId);
     });
 
+    bar.addEventListener("pointerdown", () => {
+      bar.style.opacity = "0.85";
+    });
+
+    bar.addEventListener("pointerup", () => {
+      bar.style.opacity = "1";
+    });
 
 
     // Count input (updates on blur)
