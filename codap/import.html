@@ -3,58 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <title>CSV Import | CODAP Sampler Companion</title>
-  <link rel="stylesheet" href="assets/css/kitclement.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-<header class="site-header">
-  <nav class="nav container">
-    <div class="nav-left">
-      <a href="index.html" class="site-title">
-        CODAP Sampler Companion
-      </a>
-    </div>
 
-    <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="mixer.html">Mixer Builder</a></li>
-      <li><a href="import.html" class="active">CSV Import</a></li>
-    </ul>
+<div class="topnav">
+  <a href="index.html">Home</a>
+  <a href="mixer.html">Mixer Builder</a>
+  <a href="import.html" class="active">CSV Import</a>
+  <a href="https://codap.concord.org" target="_blank">Open CODAP</a>
+</div>
 
-    <div class="nav-right">
-      <a
-        href="https://codap.concord.org"
-        target="_blank"
-        class="btn btn-primary"
-      >
-        Open CODAP
-      </a>
-    </div>
-  </nav>
-</header>
-
-<main class="container">
+<div class="pgs">
   <h1>CSV Column Import</h1>
 
   <p>
-    Upload a CSV file, choose a variable, and copy its values
+    Upload a CSV file, select a variable, and copy its values
     directly into a CODAP sampler.
   </p>
 
   <input type="file" id="csvfile" accept=".csv">
 
+  <br><br>
+
   <select id="variablePicker"></select>
+
+  <br><br>
 
   <textarea
     id="columnOutput"
     rows="8"
+    style="width:100%;"
     placeholder="Column values will appear here..."
   ></textarea>
 
-  <button id="copyCol" class="btn">
-    Copy to Clipboard
-  </button>
-</main>
+  <br><br>
+
+  <button id="copyCol">Copy to Clipboard</button>
+</div>
 
 <script src="import.js"></script>
 </body>
