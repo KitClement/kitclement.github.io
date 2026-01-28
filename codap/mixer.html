@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mixer Builder | CODAP Sampler Companion</title>
+  <link rel="stylesheet" href="assets/css/kitclement.css">
+</head>
+
+<body>
+<header class="site-header">
+  <nav class="nav container">
+    <div class="nav-left">
+      <a href="index.html" class="site-title">
+        CODAP Sampler Companion
+      </a>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="mixer.html" class="active">Mixer Builder</a></li>
+      <li><a href="import.html">CSV Import</a></li>
+    </ul>
+
+    <div class="nav-right">
+      <a
+        href="https://codap.concord.org"
+        target="_blank"
+        class="btn btn-primary"
+      >
+        Open CODAP
+      </a>
+    </div>
+  </nav>
+</header>
+
+<main class="container">
+  <h1>Categorical Mixer Builder</h1>
+
+  <p>
+    Use this tool to build a categorical sampler without
+    manually entering each value into CODAP.
+  </p>
+
+  <!-- Mixer UI goes here -->
+  <div id="categories"></div>
+
+  <textarea
+    id="output"
+    rows="6"
+    placeholder="Generated values will appear here..."
+  ></textarea>
+
+  <button id="copyOutput" class="btn">
+    Copy to Clipboard
+  </button>
+</main>
+
+<script src="mixer.js"></script>
+</body>
+</html>
