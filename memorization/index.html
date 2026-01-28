@@ -56,6 +56,11 @@ Scores student recall based on the fixed sequence:
 
 <input type="file" id="fileInput" accept=".csv">
 
+<label>
+  Number of header rows:
+  <input type="number" id="headerRows" value="3" min="0" style="width:60px;">
+</label>
+  
 <h2>Column selection</h2>
 <label>Name column:
   <select id="nameCol"></select>
@@ -134,8 +139,10 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
     complete: function(results) {
       const rows = results.data;
 
-      const headers = rows[0];      // row 1
-      const dataRows = rows.slice(3); // row 4+
+      const headerCount = parseInt(document.getElementById("headerRows").value, 10) || 0;
+
+      const headers = rows[0];
+      const dataRows = rows.slice(headerCount);
 
       rawData = dataRows.map(row => {
         const obj = {};
@@ -165,9 +172,16 @@ function populateDropdowns(headers) {
 }
 
 function setDefaultSelections(headers) {
-  const defaults = { nameCol: "R", lettersCol: "AE", conditionCol: "AF" };
+  const defaults = {
+    nameCol: "Q7",
+    lettersCol: "Q4",
+    conditionCol: "Group"
+  };
+
   Object.entries(defaults).forEach(([id, val]) => {
-    if (headers.includes(val)) document.getElementById(id).value = val;
+    if (headers.includes(val)) {
+      document.getElementById(id).value = val;
+    }
   });
 }
 
@@ -229,15 +243,21 @@ function drawHistograms() {
 
   const groups = {};
   processedData.forEach(d => {
-    const cond = d.Condition.trim();
+    if (!d.Condition) return;
+
+    const cond = d.Condition.trim().toUpperCase();
+    if (cond === "") return;
+ 
     if (!groups[cond]) groups[cond] = [];
     groups[cond].push(d.NumberCorrect);
   });
 
   const conds = Object.keys(groups);
-  if (conds.length !== 2) {
-    alert(`Histogram requires exactly two conditions. Found: ${conds.join(", ")}`);
-    return;
+  if (Object.keys(groups).length !== 2) {
+    alert(
+      `Histogram requires exactly two conditions.\n\nDetected: ${Object.keys(groups).join(", ")}`
+      );
+  return;
   }
 
   const bins = Array.from({length:31},(_,i)=>i);
