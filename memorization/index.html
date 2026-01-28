@@ -250,6 +250,7 @@ function updatePreview() {
 // ------------------ Histogram ------------------
 function drawHistograms() {
   buildProcessedData();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const canvas = document.getElementById("histogramCanvas");
   if (!canvas) {
@@ -297,9 +298,10 @@ function drawHistograms() {
     const y0 = pad + idx*(plotH+pad);
     const label = CONDITION_LABELS[conds[idx]] || conds[idx];
 
-    ctx.fillStyle="#000";
-    ctx.fillText(label, pad, y0-10);
-
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText(label, pad, y0 - 12);
+    
     arr.forEach((c,i)=>{
       const h = (c/maxCount)*plotH;
       ctx.fillStyle="#4a90e2";
@@ -316,17 +318,30 @@ function drawHistograms() {
     if (document.getElementById("showMedian").checked) {
       drawLine(med, y0, plotH, "dashed");
     }
+    // X-axis labels
+    ctx.fillStyle = "#000";
+    ctx.font = "12px Arial";
+    for (let i = 0; i <= 30; i += 5) {
+      const x = pad + i * bw;
+      ctx.fillText(i.toString(), x - 4, y0 + plotH + 18);
+}
   });
 
-  function drawLine(val,y0,h,style){
-    const x = pad + val*bw;
-    ctx.strokeStyle="#000";
-    ctx.setLineDash(style==="dashed"?[6,4]:[]);
+  function drawLine(val, y0, h, style) {
+    const x = pad + val * bw;
+
+    ctx.strokeStyle = "#000";
+    ctx.setLineDash(style === "dashed" ? [6, 4] : []);
     ctx.beginPath();
-    ctx.moveTo(x,y0);
-    ctx.lineTo(x,y0+h);
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x, y0 + h);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Numeric label
+    ctx.fillStyle = "#000";
+    ctx.font = "12px Arial";
+    ctx.fillText(val.toFixed(1), x - 10, y0 - 5);
   }
 }
 
@@ -348,6 +363,15 @@ document.getElementById("showHistograms").addEventListener("click", () => {
   }
   drawHistograms();
 });
+
+["showMean", "showMedian"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    if (processedData.length) {
+      drawHistograms();
+    }
+  });
+});
+
 </script>
 
 </body>
