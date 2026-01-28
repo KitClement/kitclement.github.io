@@ -428,11 +428,6 @@ function drawHistograms() {
     ctx.lineTo(x, y0 + h);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    // Numeric label
-    ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.fillText(val.toFixed(1), x - 10, y0 - 5);
   }
 }
 
