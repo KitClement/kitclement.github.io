@@ -18,22 +18,28 @@
 <div class="pgs">
   <h1>Categorical Mixer Builder</h1>
 
-  <p>
-    Use this tool to build a categorical sampler without
-    manually entering each value into CODAP.
-  </p>
+  <button id="addCategory">Add Category</button>
 
-  <div id="categories"></div>
+  <table id="mixerTable" border="1" cellpadding="6">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Count</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
+  <h3>CODAP Sampler Values</h3>
   <textarea
     id="output"
-    rows="6"
+    rows="5"
     style="width:100%;"
-    placeholder="Generated values will appear here..."
+    readonly
   ></textarea>
 
   <br><br>
-
   <button id="copyOutput">Copy to Clipboard</button>
 </div>
 
