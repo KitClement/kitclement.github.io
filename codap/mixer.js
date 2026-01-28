@@ -125,11 +125,23 @@ function render() {
     countInput.type = "number";
     countInput.value = cat.count;
     countInput.style.width = "40px";
-    countInput.onblur = e => {
-      cat.count = Math.max(0, Number(e.target.value));
+    function commitCountChange() {
+      cat.count = Math.max(0, Number(countInput.value));
       render();
+    }
+
+    countInput.onblur = commitCountChange;
+
+    countInput.onkeydown = e => {
+      if (e.key === "Enter") {
+        countInput.blur();   // triggers onblur → commitCountChange()
+      }
     };
 
+    countInput.onfocus = () => {
+      countInput.select();
+    };
+    
     // Name input
     const nameInput = document.createElement("input");
     nameInput.type = "text";
