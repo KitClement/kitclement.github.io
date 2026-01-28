@@ -3,9 +3,8 @@ const output = document.getElementById("output");
 const catCountInput = document.getElementById("catCount");
 
 let categories = [];
-
-const MAX_COUNT = 50;
-const BAR_SCALE = 5; // pixels per unit
+const MAX_VISIBLE_BLOCKS = 40;
+const CHART_HEIGHT = 260;
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -20,15 +19,41 @@ function syncCategoryCount(n) {
 function render() {
   chart.innerHTML = "";
 
+  const maxCount = Math.max(...categories.map(c => c.count), 1);
+  const scale = CHART_HEIGHT / maxCount;
+
   categories.forEach((cat, i) => {
     const wrapper = document.createElement("div");
-    wrapper.style.textAlign = "center";
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.alignItems = "center";
 
+    // Count label (top)
+    const countLabel = document.createElement("div");
+    countLabel.textContent = cat.count;
+    countLabel.style.fontWeight = "bold";
+    countLabel.style.marginBottom = "4px";
+
+    // Bar container
     const bar = document.createElement("div");
-    bar.style.height = `${cat.count * BAR_SCALE}px`;
-    bar.style.width = "60px";
-    bar.style.background = "#4fa3d1";
+    bar.style.width = "36px";
+    bar.style.height = `${cat.count * scale}px`;
+    bar.style.display = "flex";
+    bar.style.flexDirection = "column-reverse";
     bar.style.cursor = "ns-resize";
+
+    // Discrete blocks vs smooth bar
+    if (cat.count <= MAX_VISIBLE_BLOCKS) {
+      for (let j = 0; j < cat.count; j++) {
+        const block = document.createElement("div");
+        block.style.height = `${scale - 1}px`;
+        block.style.marginTop = "1px";
+        block.style.background = "#4fa3d1";
+        bar.appendChild(block);
+      }
+    } else {
+      bar.style.background = "#4fa3d1";
+    }
 
     // Drag behavior
     let startY, startCount;
@@ -38,10 +63,11 @@ function render() {
 
       document.onmousemove = e2 => {
         const delta = startY - e2.clientY;
-        cat.count = Math.max(
+        const newCount = Math.max(
           0,
-          Math.min(MAX_COUNT, startCount + Math.round(delta / BAR_SCALE))
+          Math.round(startCount + delta / scale)
         );
+        cat.count = newCount;
         render();
       };
 
@@ -50,29 +76,28 @@ function render() {
       };
     };
 
+    // Count input (updates on blur)
     const countInput = document.createElement("input");
     countInput.type = "number";
     countInput.value = cat.count;
-    countInput.style.width = "60px";
-    countInput.oninput = e => {
+    countInput.style.width = "40px";
+    countInput.onblur = e => {
       cat.count = Math.max(0, Number(e.target.value));
       render();
     };
 
+    // Name input
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.value = cat.name;
-    nameInput.style.width = "60px";
-    nameInput.oninput = e => {
+    nameInput.style.width = "40px";
+    nameInput.onblur = e => {
       cat.name = e.target.value;
       updateOutput();
     };
 
-    const label = document.createElement("div");
-    label.textContent = cat.count;
-
+    wrapper.appendChild(countLabel);
     wrapper.appendChild(bar);
-    wrapper.appendChild(label);
     wrapper.appendChild(countInput);
     wrapper.appendChild(nameInput);
 
@@ -103,7 +128,7 @@ document.getElementById("removeCat").onclick = () => {
   syncCategoryCount(Number(catCountInput.value));
 };
 
-catCountInput.oninput = e => {
+catCountInput.onblur = e => {
   syncCategoryCount(Number(e.target.value));
 };
 
