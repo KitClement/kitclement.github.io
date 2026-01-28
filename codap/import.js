@@ -30,7 +30,11 @@ function populatePicker() {
 
 picker.onchange = () => {
   const idx = +picker.value;
-  const column = rows.map(r => r[idx]).join("\n");
+  const column = rows
+    .map(r => r[idx])
+    .filter(v => v !== undefined && v !== "")
+    .join(", ");
+
   colOut.value = column;
 };
 
