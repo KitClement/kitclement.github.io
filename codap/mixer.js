@@ -189,6 +189,16 @@ function render() {
     chart.appendChild(wrapper);
   });
 
+  if (lastFocused) {
+    const wrappers = chart.children;
+    if (wrappers[lastFocused.index]) {
+      const inputs = wrappers[lastFocused.index].querySelectorAll("input");
+      const target =
+        lastFocused.type === "count" ? inputs[0] : inputs[1];
+      if (target) target.focus();
+    }
+  }
+
   updateOutput();
 }
 
