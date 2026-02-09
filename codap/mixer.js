@@ -198,8 +198,12 @@ function render() {
     chart.appendChild(wrapper);
   });
 
-  // Restore keyboard focus only if render came from keyboard interaction
-  if (lastInteractionWasKeyboard && lastFocused) {
+  // Restore focus only if keyboard interaction AND browser lost focus
+  if (
+    lastInteractionWasKeyboard &&
+    lastFocused &&
+    document.activeElement === document.body
+  ) {
     const wrappers = chart.children;
 
     if (wrappers[lastFocused.index]) {
@@ -209,9 +213,6 @@ function render() {
 
       if (target) target.focus();
     }
-
-    // Only restore once — prevents focus lock
-    lastFocused = null;
   }
 
   updateOutput();
