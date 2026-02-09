@@ -20,6 +20,10 @@ function syncCategoryCount(n) {
   render();
 }
 
+function sanitizeLabel(text) {
+  return text.replace(/,/g, "");   // remove all commas
+}
+
 function drawBar(bar, count, scale, useDiscrete) {
   bar.innerHTML = "";
   bar.style.background = "";
@@ -149,9 +153,23 @@ function render() {
     nameInput.type = "text";
     nameInput.value = cat.name;
     nameInput.style.width = "40px";
-    nameInput.onblur = e => {
-      cat.name = e.target.value;
+    nameInput.onblur = () => {
+      const cleaned = sanitizeLabel(nameInput.value);
+
+      if (cleaned !== nameInput.value) {
+        // briefly highlight to show correction
+        nameInput.style.borderColor = "red";
+        setTimeout(() => nameInput.style.borderColor = "", 600);
+      }
+
+      nameInput.value = cleaned;
+      cat.name = cleaned;
       updateOutput();
+    };
+    nameInput.oninput = () => {
+      const pos = nameInput.selectionStart;
+      nameInput.value = sanitizeLabel(nameInput.value);
+      nameInput.setSelectionRange(pos, pos); // keep cursor stable
     };
 
     wrapper.appendChild(countLabel);
