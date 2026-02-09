@@ -44,6 +44,24 @@ function parseCSV(text) {
   return rows;
 }
 
+function sanitizeCellCommas(text) {
+  const mode = document.getElementById("commaMode").value;
+
+  if (!text) return "";
+
+  switch (mode) {
+    case "semicolon":
+      return text.replace(/,/g, ";");
+    case "colon":
+      return text.replace(/,/g, ":");
+    case "slash":
+      return text.replace(/,/g, "/");
+    case "delete":
+    default:
+      return text.replace(/,/g, "");
+  }
+}
+
 fileInput.onchange = () => {
   const file = fileInput.files[0];
   if (!file) return;
@@ -74,8 +92,8 @@ picker.onchange = () => {
   const idx = +picker.value;
   const column = rows
     .map(r => r[idx])
-    .map(v => v ? v.trim() : "")     // remove line breaks and whitespace
-    .filter(v => v !== "")           // remove empty rows
+    .map(v => v ? sanitizeCellCommas(v.trim()) : "")
+    .filter(v => v !== "")
     .join(", ");
 
   colOut.value = column;
@@ -84,3 +102,9 @@ picker.onchange = () => {
 copyCol.onclick = () => {
   navigator.clipboard.writeText(colOut.value);
 };
+
+document.getElementById("commaMode").addEventListener("change", () => {
+  if (picker.value !== "") {
+    picker.dispatchEvent(new Event("change"));
+  }
+});
