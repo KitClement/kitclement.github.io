@@ -9,16 +9,6 @@ const CHART_HEIGHT = 260;
 let draggingIndex = null;
 let dragStartY = 0;
 let dragStartCount = 0;
-let lastFocused = null;
-let lastInteractionWasKeyboard = false;
-
-document.addEventListener("keydown", () => {
-  lastInteractionWasKeyboard = true;
-});
-
-document.addEventListener("pointerdown", () => {
-  lastInteractionWasKeyboard = false;
-});
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -142,8 +132,21 @@ function render() {
     countInput.value = cat.count;
     countInput.style.width = "40px";
     function commitCountChange() {
-      cat.count = Math.max(0, Number(countInput.value));
-      render();
+      const newVal = Math.max(0, Number(countInput.value));
+      if (newVal === cat.count) return;
+
+      cat.count = newVal;
+
+      // Recompute scale (in case this was the tallest bar)
+      const maxCount = Math.max(...categories.map(c => c.count), 1);
+      const newScale = CHART_HEIGHT / maxCount;
+      const newUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
+
+      // Update ONLY this bar (no full render)
+      countLabel.textContent = cat.count;
+      drawBar(bar, cat.count, newScale, newUseDiscrete);
+
+      updateOutput();
     }
 
     countInput.onblur = commitCountChange;
@@ -182,14 +185,6 @@ function render() {
       nameInput.setSelectionRange(pos, pos); // keep cursor stable
     };
 
-    countInput.addEventListener("focus", () => {
-      lastFocused = { type: "count", index: i };
-    });
-
-    nameInput.addEventListener("focus", () => {
-      lastFocused = { type: "name", index: i };
-    });
-
     wrapper.appendChild(countLabel);
     wrapper.appendChild(bar);
     wrapper.appendChild(countInput);
@@ -197,23 +192,6 @@ function render() {
 
     chart.appendChild(wrapper);
   });
-
-  // Restore focus only if keyboard interaction AND browser lost focus
-  if (
-    lastInteractionWasKeyboard &&
-    lastFocused &&
-    document.activeElement === document.body
-  ) {
-    const wrappers = chart.children;
-
-    if (wrappers[lastFocused.index]) {
-      const inputs = wrappers[lastFocused.index].querySelectorAll("input");
-      const target =
-        lastFocused.type === "count" ? inputs[0] : inputs[1];
-
-      if (target) target.focus();
-    }
-  }
 
   updateOutput();
 }
