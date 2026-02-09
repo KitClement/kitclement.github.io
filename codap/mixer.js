@@ -70,7 +70,8 @@ function render() {
     bar.style.display = "flex";
     bar.style.flexDirection = "column-reverse";
     bar.style.cursor = "ns-resize";
-
+    bar.onselectstart = () => false;
+    
     drawBar(bar, cat.count, scale, useDiscrete);
 
     // Drag behavior
@@ -78,6 +79,8 @@ function render() {
     let startCount = 0;
 
     bar.addEventListener("pointerdown", e => {
+      document.body.classList.add("noselect");   
+      
       draggingIndex = i;
       dragStartY = e.clientY;
       dragStartCount = cat.count;
@@ -110,6 +113,8 @@ function render() {
 
 
     bar.addEventListener("pointerup", e => {
+      document.body.classList.remove("noselect");  
+      
       draggingIndex = null;
       bar.releasePointerCapture(e.pointerId);
 
@@ -118,6 +123,8 @@ function render() {
     });
 
     bar.addEventListener("pointercancel", e => {
+      document.body.classList.remove("noselect");   // ⬅ ADD THIS
+
       draggingIndex = null;
       bar.releasePointerCapture(e.pointerId);
     });
