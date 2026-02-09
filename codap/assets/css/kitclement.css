@@ -35,3 +35,13 @@ body {
 .bar {
   touch-action: none;
 }
+
+.noselect {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+.bar {
+  -webkit-tap-highlight-color: transparent;
+}
