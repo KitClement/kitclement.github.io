@@ -135,16 +135,35 @@ function render() {
       const newVal = Math.max(0, Number(countInput.value));
       if (newVal === cat.count) return;
 
+      const oldMax = Math.max(...categories.map(c => c.count), 1);
+
       cat.count = newVal;
 
-      // Recompute scale (in case this was the tallest bar)
-      const maxCount = Math.max(...categories.map(c => c.count), 1);
-      const newScale = CHART_HEIGHT / maxCount;
+      const newMax = Math.max(...categories.map(c => c.count), 1);
+      const scaleChanged = newMax !== oldMax;
+
+      const newScale = CHART_HEIGHT / newMax;
       const newUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
 
-      // Update ONLY this bar (no full render)
-      countLabel.textContent = cat.count;
-      drawBar(bar, cat.count, newScale, newUseDiscrete);
+      if (!scaleChanged) {
+        // Only redraw this bar
+        countLabel.textContent = cat.count;
+        drawBar(bar, cat.count, newScale, newUseDiscrete);
+      } else {
+        // Redraw ALL bars in place (no DOM rebuild → tab stays stable)
+        const wrappers = chart.children;
+
+        categories.forEach((c, idx) => {
+          const wrapper = wrappers[idx];
+          if (!wrapper) return;
+
+          const label = wrapper.children[0];
+          const barDiv = wrapper.children[1];
+
+          label.textContent = c.count;
+          drawBar(barDiv, c.count, newScale, newUseDiscrete);
+        });
+      }
 
       updateOutput();
     }
