@@ -9,6 +9,7 @@ const CHART_HEIGHT = 260;
 let draggingIndex = null;
 let dragStartY = 0;
 let dragStartCount = 0;
+let lastFocused = null;
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -171,6 +172,14 @@ function render() {
       nameInput.value = sanitizeLabel(nameInput.value);
       nameInput.setSelectionRange(pos, pos); // keep cursor stable
     };
+
+    countInput.addEventListener("focus", () => {
+      lastFocused = { type: "count", index: i };
+    });
+
+    nameInput.addEventListener("focus", () => {
+      lastFocused = { type: "name", index: i };
+    });
 
     wrapper.appendChild(countLabel);
     wrapper.appendChild(bar);
