@@ -10,6 +10,15 @@ let draggingIndex = null;
 let dragStartY = 0;
 let dragStartCount = 0;
 let lastFocused = null;
+let lastInteractionWasKeyboard = false;
+
+document.addEventListener("keydown", () => {
+  lastInteractionWasKeyboard = true;
+});
+
+document.addEventListener("pointerdown", () => {
+  lastInteractionWasKeyboard = false;
+});
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -189,14 +198,20 @@ function render() {
     chart.appendChild(wrapper);
   });
 
-  if (lastFocused) {
+  // Restore keyboard focus only if render came from keyboard interaction
+  if (lastInteractionWasKeyboard && lastFocused) {
     const wrappers = chart.children;
+
     if (wrappers[lastFocused.index]) {
       const inputs = wrappers[lastFocused.index].querySelectorAll("input");
       const target =
         lastFocused.type === "count" ? inputs[0] : inputs[1];
+
       if (target) target.focus();
     }
+
+    // Only restore once — prevents focus lock
+    lastFocused = null;
   }
 
   updateOutput();
