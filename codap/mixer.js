@@ -88,17 +88,22 @@ function render() {
     bar.addEventListener("pointermove", e => {
       if (draggingIndex !== i) return;
 
+      // Compute CURRENT scale (not stale render-time scale)
+      const currentMax = Math.max(...categories.map(c => c.count), 1);
+      const currentScale = CHART_HEIGHT / currentMax;
+      const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
+
       const delta = dragStartY - e.clientY;
       const newCount = Math.max(
         0,
-        Math.round(dragStartCount + delta / scale)
+        Math.round(dragStartCount + delta / currentScale)
       );
 
       if (newCount !== cat.count) {
         cat.count = newCount;
 
         countLabel.textContent = cat.count;
-        drawBar(bar, cat.count, scale, useDiscrete);
+        drawBar(bar, cat.count, currentScale, currentUseDiscrete);
         updateOutput();
       }
     });
