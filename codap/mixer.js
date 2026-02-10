@@ -45,6 +45,17 @@ function drawBar(bar, count, scale, useDiscrete) {
   bar.style.height = `${count * scale}px`;
 }
 
+function getBarIndexFromPointerX(clientX) {
+  const wrappers = chart.children;
+  for (let idx = 0; idx < wrappers.length; idx++) {
+    const rect = wrappers[idx].getBoundingClientRect();
+    if (clientX >= rect.left && clientX <= rect.right) {
+      return idx;
+    }
+  }
+  return null;
+}
+
 function render() {
   chart.innerHTML = "";
 
@@ -97,6 +108,15 @@ function render() {
 
     bar.addEventListener("pointermove", e => {
       if (!isDragging || draggingIndex !== i) return;   // ⬅ ADD THIS
+
+      // Horizontal handoff: move into neighboring bar
+      const newIndex = getBarIndexFromPointerX(e.clientX);
+      if (newIndex !== null && newIndex !== draggingIndex) {
+        draggingIndex = newIndex;
+        dragStartCount = categories[newIndex].count;
+        dragStartY = e.clientY;
+      }
+      
       const currentMax = Math.max(...categories.map(c => c.count), 1);
       const currentScale = CHART_HEIGHT / currentMax;
       const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
