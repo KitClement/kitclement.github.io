@@ -47,13 +47,21 @@ function drawBar(bar, count, scale, useDiscrete) {
 
 function getBarIndexFromPointerX(clientX) {
   const wrappers = chart.children;
+  let closestIndex = null;
+  let closestDist = Infinity;
+
   for (let idx = 0; idx < wrappers.length; idx++) {
     const rect = wrappers[idx].getBoundingClientRect();
-    if (clientX >= rect.left && clientX <= rect.right) {
-      return idx;
+    const centerX = rect.left + rect.width / 2;
+    const dist = Math.abs(clientX - centerX);
+
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestIndex = idx;
     }
   }
-  return null;
+
+  return closestIndex;
 }
 
 function render() {
