@@ -64,6 +64,50 @@ function getBarIndexFromPointerX(clientX) {
   return closestIndex;
 }
 
+document.addEventListener("pointermove", e => {
+  if (!isDragging) return;
+
+  const newIndex = getBarIndexFromPointerX(e.clientX);
+  if (newIndex === null) return;
+
+  const cat = categories[newIndex];
+  const wrappers = chart.children;
+  const wrapper = wrappers[newIndex];
+  if (!wrapper) return;
+
+  const countLabel = wrapper.children[0];
+  const bar = wrapper.children[1];
+
+  // Compute current scale
+  const currentMax = Math.max(...categories.map(c => c.count), 1);
+  const currentScale = CHART_HEIGHT / currentMax;
+  const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
+
+  // Compute new count using locked drag scale
+  const delta = dragStartY - e.clientY;
+
+  let newCount = Math.round(dragStartCount + delta / dragStartScale);
+
+  // Soft limiter
+  const MAX_REASONABLE = 5000;
+  if (newCount > MAX_REASONABLE) {
+    const excess = newCount - MAX_REASONABLE;
+    newCount = MAX_REASONABLE + Math.sqrt(excess);
+  }
+
+  newCount = Math.max(0, Math.round(newCount));
+
+  if (newCount !== cat.count) {
+    cat.count = newCount;
+    countLabel.textContent = cat.count;
+    drawBar(bar, cat.count, currentScale, currentUseDiscrete);
+    updateOutput();
+  }
+
+  // Update drag anchor so horizontal moves stay smooth
+  draggingIndex = newIndex;
+});
+
 function render() {
   chart.innerHTML = "";
 
@@ -112,46 +156,6 @@ function render() {
       isDragging = true;  
 
       bar.setPointerCapture(e.pointerId);
-    });
-
-    bar.addEventListener("pointermove", e => {
-      if (!isDragging || draggingIndex !== i) return;   // ⬅ ADD THIS
-
-      // Horizontal handoff: move into neighboring bar
-      const newIndex = getBarIndexFromPointerX(e.clientX);
-      if (newIndex !== null && newIndex !== draggingIndex) {
-        draggingIndex = newIndex;
-        dragStartCount = categories[newIndex].count;
-        dragStartY = e.clientY;
-      }
-      
-      const currentMax = Math.max(...categories.map(c => c.count), 1);
-      const currentScale = CHART_HEIGHT / currentMax;
-      const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
-
-      const delta = dragStartY - e.clientY;
-
-      if (!isFinite(dragStartScale) || dragStartScale <= 0) return;
-      
-      // Use locked drag scale for count calculation
-      let newCount = Math.round(dragStartCount + delta / dragStartScale);
-
-      // Soft limiter (optional but recommended)
-      const MAX_REASONABLE = 5000;
-      if (newCount > MAX_REASONABLE) {
-        const excess = newCount - MAX_REASONABLE;
-        newCount = MAX_REASONABLE + Math.sqrt(excess);
-      }
-
-      newCount = Math.max(0, Math.round(newCount));
-
-      if (newCount !== cat.count) {
-        cat.count = newCount;
-
-        countLabel.textContent = cat.count;
-        drawBar(bar, cat.count, currentScale, currentUseDiscrete);
-        updateOutput();
-      }
     });
 
 
