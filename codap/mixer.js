@@ -98,9 +98,33 @@ document.addEventListener("pointermove", e => {
   newCount = Math.max(0, Math.round(newCount));
 
   if (newCount !== cat.count) {
+    const oldMax = Math.max(...categories.map(c => c.count), 1);
+  
     cat.count = newCount;
-    countLabel.textContent = cat.count;
-    drawBar(bar, cat.count, currentScale, currentUseDiscrete);
+
+    const newMax = Math.max(...categories.map(c => c.count), 1);
+    const scaleChanged = newMax !== oldMax;
+
+    if (!scaleChanged) {
+      // Only redraw this bar
+      countLabel.textContent = cat.count;
+      drawBar(bar, cat.count, currentScale, currentUseDiscrete);
+    } else {
+      // Redraw ALL bars in place (no DOM rebuild)
+      const wrappers = chart.children;
+
+      categories.forEach((c, idx) => {
+        const w = wrappers[idx];
+        if (!w) return;
+
+        const lbl = w.children[0];
+        const b = w.children[1];
+ 
+        lbl.textContent = c.count;
+        drawBar(b, c.count, currentScale, currentUseDiscrete);
+      });
+    }
+
     updateOutput();
   }
 
