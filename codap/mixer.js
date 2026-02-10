@@ -80,17 +80,22 @@ function render() {
     let startCount = 0;
 
     bar.addEventListener("pointerdown", e => {
-      document.body.classList.add("noselect");   
-      
+      document.body.classList.add("noselect");
+
       draggingIndex = i;
       dragStartY = e.clientY;
       dragStartCount = cat.count;
 
       const currentMax = Math.max(...categories.map(c => c.count), 1);
+
+      // Prevent zero / NaN scale
       dragStartScale = CHART_HEIGHT / currentMax;
-     
-      bar.setPointerCapture(e.pointerId);
-    });
+      if (!isFinite(dragStartScale) || dragStartScale <= 0) {
+        dragStartScale = 1;
+      }
+
+  bar.setPointerCapture(e.pointerId);
+});
 
     bar.addEventListener("pointermove", e => {
       const currentMax = Math.max(...categories.map(c => c.count), 1);
@@ -99,6 +104,8 @@ function render() {
 
       const delta = dragStartY - e.clientY;
 
+      if (!isFinite(dragStartScale) || dragStartScale <= 0) return;
+      
       // Use locked drag scale for count calculation
       let newCount = Math.round(dragStartCount + delta / dragStartScale);
 
