@@ -9,6 +9,7 @@ const CHART_HEIGHT = 260;
 let draggingIndex = null;
 let dragStartY = 0;
 let dragStartCount = 0;
+let dragStartScale = 1;
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -85,22 +86,30 @@ function render() {
       dragStartY = e.clientY;
       dragStartCount = cat.count;
 
+      const currentMax = Math.max(...categories.map(c => c.count), 1);
+      dragStartScale = CHART_HEIGHT / currentMax;
+     
       bar.setPointerCapture(e.pointerId);
     });
 
     bar.addEventListener("pointermove", e => {
-      if (draggingIndex !== i) return;
-
-      // Compute CURRENT scale (not stale render-time scale)
       const currentMax = Math.max(...categories.map(c => c.count), 1);
       const currentScale = CHART_HEIGHT / currentMax;
       const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
 
       const delta = dragStartY - e.clientY;
-      const newCount = Math.max(
-        0,
-        Math.round(dragStartCount + delta / currentScale)
-      );
+
+      // Use locked drag scale for count calculation
+      let newCount = Math.round(dragStartCount + delta / dragStartScale);
+
+      // Soft limiter (optional but recommended)
+      const MAX_REASONABLE = 5000;
+      if (newCount > MAX_REASONABLE) {
+        const excess = newCount - MAX_REASONABLE;
+        newCount = MAX_REASONABLE + Math.sqrt(excess);
+      }
+
+      newCount = Math.max(0, Math.round(newCount));
 
       if (newCount !== cat.count) {
         cat.count = newCount;
