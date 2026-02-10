@@ -70,6 +70,17 @@ document.addEventListener("pointermove", e => {
   const newIndex = getBarIndexFromPointerX(e.clientX);
   if (newIndex === null) return;
 
+  // If we moved horizontally onto a different bar, reset drag anchor
+  if (newIndex !== draggingIndex) {
+    draggingIndex = newIndex;
+
+    dragStartCount = categories[newIndex].count;
+    dragStartY = e.clientY;
+
+    const newMax = Math.max(...categories.map(c => c.count), 1);
+    dragStartScale = CHART_HEIGHT / newMax || 1;
+  }
+  
   const cat = categories[newIndex];
   const wrappers = chart.children;
   const wrapper = wrappers[newIndex];
