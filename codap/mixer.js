@@ -132,7 +132,16 @@ document.addEventListener("pointermove", e => {
   }
 
   // Update drag anchor so horizontal moves stay smooth
-  draggingIndex = newIndex;
+  if (newIndex !== draggingIndex) {
+    draggingIndex = newIndex;
+
+    // Re-anchor vertically so horizontal snapping matches pointer height
+    dragStartCount = newCount;
+    dragStartY = e.clientY;
+
+    const newMax = Math.max(...categories.map(c => c.count), 1);
+    dragStartScale = CHART_HEIGHT / newMax || 1;
+  }
 });
 
 function render() {
