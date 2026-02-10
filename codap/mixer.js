@@ -70,30 +70,6 @@ document.addEventListener("pointermove", e => {
   const newIndex = getBarIndexFromPointerX(e.clientX);
   if (newIndex === null) return;
 
-  // If we moved horizontally onto a different bar, reset drag anchor
-  if (newIndex !== draggingIndex) {
-    draggingIndex = newIndex;
-
-    dragStartCount = categories[newIndex].count;
-    dragStartY = e.clientY;
-
-    const newMax = Math.max(...categories.map(c => c.count), 1);
-    dragStartScale = CHART_HEIGHT / newMax || 1;
-  }
-  
-  const cat = categories[newIndex];
-  const wrappers = chart.children;
-  const wrapper = wrappers[newIndex];
-  if (!wrapper) return;
-
-  const countLabel = wrapper.children[0];
-  const bar = wrapper.children[1];
-
-  // Compute current scale
-  const currentMax = Math.max(...categories.map(c => c.count), 1);
-  const currentScale = CHART_HEIGHT / currentMax;
-  const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
-
   // Compute new count using locked drag scale
   const delta = dragStartY - e.clientY;
 
@@ -107,30 +83,46 @@ document.addEventListener("pointermove", e => {
   }
 
   newCount = Math.max(0, Math.round(newCount));
+  const cat = categories[newIndex];
+  const wrappers = chart.children;
+  const wrapper = wrappers[newIndex];
+  if (!wrapper) return;
+
+  const countLabel = wrapper.children[0];
+  const bar = wrapper.children[1];
+
+  // Compute current scale
+  const currentMax = Math.max(...categories.map(c => c.count), 1);
+  const currentScale = CHART_HEIGHT / currentMax;
+  const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
 
   if (newCount !== cat.count) {
     const oldMax = Math.max(...categories.map(c => c.count), 1);
-  
+
     cat.count = newCount;
 
     const newMax = Math.max(...categories.map(c => c.count), 1);
     const scaleChanged = newMax !== oldMax;
 
+    const currentScale = CHART_HEIGHT / newMax;
+    const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
+
     if (!scaleChanged) {
-      // Only redraw this bar
+      const countLabel = wrapper.children[0];
+      const bar = wrapper.children[1];
+
       countLabel.textContent = cat.count;
       drawBar(bar, cat.count, currentScale, currentUseDiscrete);
     } else {
-      // Redraw ALL bars in place (no DOM rebuild)
+      // redraw ALL bars (your existing block)
       const wrappers = chart.children;
-
       categories.forEach((c, idx) => {
         const w = wrappers[idx];
         if (!w) return;
 
         const lbl = w.children[0];
         const b = w.children[1];
- 
+
         lbl.textContent = c.count;
         drawBar(b, c.count, currentScale, currentUseDiscrete);
       });
