@@ -10,6 +10,7 @@ let draggingIndex = null;
 let dragStartY = 0;
 let dragStartCount = 0;
 let dragStartScale = 1;
+let isDragging = false;
 
 function syncCategoryCount(n) {
   while (categories.length < n) {
@@ -87,17 +88,15 @@ function render() {
       dragStartCount = cat.count;
 
       const currentMax = Math.max(...categories.map(c => c.count), 1);
+      dragStartScale = CHART_HEIGHT / currentMax || 1;
 
-      // Prevent zero / NaN scale
-      dragStartScale = CHART_HEIGHT / currentMax;
-      if (!isFinite(dragStartScale) || dragStartScale <= 0) {
-        dragStartScale = 1;
-      }
+      isDragging = true;  
 
-  bar.setPointerCapture(e.pointerId);
-});
+      bar.setPointerCapture(e.pointerId);
+    });
 
     bar.addEventListener("pointermove", e => {
+      if (!isDragging || draggingIndex !== i) return;   // ⬅ ADD THIS
       const currentMax = Math.max(...categories.map(c => c.count), 1);
       const currentScale = CHART_HEIGHT / currentMax;
       const currentUseDiscrete = categories.every(c => c.count <= MAX_VISIBLE_BLOCKS);
@@ -129,19 +128,21 @@ function render() {
 
 
     bar.addEventListener("pointerup", e => {
-      document.body.classList.remove("noselect");  
-      
-      draggingIndex = null;
-      bar.releasePointerCapture(e.pointerId);
+      document.body.classList.remove("noselect");
 
-      // After drag finishes, re-render once to normalize scaling
+      draggingIndex = null;
+      isDragging = false;   // ⬅ ADD THIS
+
+      bar.releasePointerCapture(e.pointerId);
       render();
     });
 
     bar.addEventListener("pointercancel", e => {
-      document.body.classList.remove("noselect");   // ⬅ ADD THIS
+      document.body.classList.remove("noselect");
 
       draggingIndex = null;
+      isDragging = false;   // ⬅ ADD THIS
+
       bar.releasePointerCapture(e.pointerId);
     });
 
