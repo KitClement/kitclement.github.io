@@ -80,7 +80,6 @@ fileInput.onchange = () => {
 
 function populatePicker() {
   picker.innerHTML = "";
-  picker.appendChild("---");
   headers.forEach((h, i) => {
     const opt = document.createElement("option");
     opt.value = i;
