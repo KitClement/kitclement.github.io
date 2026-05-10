@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS-Clicker Grader</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2e2e2e;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --green: #4ade80;
+    --red: #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+
+  .panel-title {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200,255,0,0.03);
+  }
+
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .drop-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .drop-label strong {
+    color: var(--accent);
+  }
+
+  /* File list */
+  .file-list {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .file-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.6rem 0.75rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: start;
+  }
+
+  .file-name {
+    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  .file-date {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.2rem;
+  }
+
+  .file-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .remove-btn:hover { color: var(--red); }
+
+  input[type="date"],
+  input[type="number"],
+  input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input[type="date"]:focus,
+  input[type="number"]:focus,
+  input[type="number"]:focus {
+    border-color: var(--accent);
+  }
+
+  /* Settings */
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting-row:last-child { border-bottom: none; }
+
+  .setting-label {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .setting-hint {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.1rem;
+  }
+
+  .setting-input {
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  /* Threshold override */
+  .threshold-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(200,255,0,0.1);
+    border: 1px solid rgba(200,255,0,0.25);
+    border-radius: 3px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+  }
+
+  /* Run button */
+  .run-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: all 0.15s;
+  }
+
+  .run-btn:hover { background: #d4ff1a; transform: translateY(-1px); }
+  .run-btn:active { transform: translateY(0); }
+  .run-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
+
+  /* Preview table */
+  .preview-area {
+    overflow: auto;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    min-width: 400px;
+  }
+
+  thead tr {
+    border-bottom: 2px solid var(--border);
+  }
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  td {
+    padding: 0.45rem 0.75rem;
+    white-space: nowrap;
+  }
+
+  td.email {
+    color: var(--text);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  td.score-2 { color: var(--green); font-weight: 500; }
+  td.score-0 { color: var(--red); }
+  td.score-empty { color: var(--muted); }
+
+  .total-cell {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Download */
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: none;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-bottom: 1.25rem;
+    transition: all 0.15s;
+  }
+
+  .download-btn:hover { background: var(--accent); color: var(--bg); }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+  .error-msg {
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 3px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--red);
+    margin-top: 0.5rem;
+  }
+
+  .info-msg {
+    background: rgba(200,255,0,0.06);
+    border: 1px solid rgba(200,255,0,0.2);
+    border-radius: 3px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    margin-top: 0.5rem;
+  }
+
+  /* threshold override per file */
+  .override-input {
+    width: 65px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DS-Clicker Grader</h1>
+  <span class="subtitle">// participation scoring tool</span>
+</header>
+
+<div class="layout">
+  <!-- LEFT PANEL -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">Upload Files</div>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" multiple accept=".csv,.tsv,.txt">
+        <span class="drop-icon">📂</span>
+        <div class="drop-label">Drop CSV files here or <strong>click to browse</strong></div>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <div class="panel-title">Global Settings</div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Default threshold</div>
+          <div class="setting-hint">≥ X% questions answered = 2 pts</div>
+        </div>
+        <div class="setting-input">
+          <input type="number" id="globalThreshold" value="50" min="0" max="100" step="1">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Full points value</div>
+          <div class="setting-hint">Points awarded for meeting threshold</div>
+        </div>
+        <div class="setting-input">
+          <input type="number" id="fullPoints" value="1" min="0" max="100" step="1">
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" disabled>Calculate Grades →</button>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel preview-area" id="previewPanel">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      Upload clicker files and hit<br><strong>Calculate Grades</strong> to begin
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const files = []; // { file, name, date, threshold (optional) }
+
+// ── DOM refs ──────────────────────────────────────────────────────────────
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileList  = document.getElementById('fileList');
+const runBtn    = document.getElementById('runBtn');
+const preview   = document.getElementById('previewPanel');
+
+// ── Drag & drop ──────────────────────────────────────────────────────────
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  addFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+
+function addFiles(newFiles) {
+  newFiles.forEach(f => {
+    if (!f.name.match(/\.(csv|tsv|txt)$/i)) return;
+    // Guess date from filename in Month_Day__Year format (e.g. May_10__2026)
+    const MONTHS = { january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12 };
+    let guessedDate = '';
+    const mdyMatch = f.name.match(/([A-Za-z]+)_(\d{1,2})__(\d{4})/);
+    if (mdyMatch) {
+      const monthNum = MONTHS[mdyMatch[1].toLowerCase()];
+      if (monthNum) {
+        const mm = String(monthNum).padStart(2, '0');
+        const dd = String(mdyMatch[2]).padStart(2, '0');
+        guessedDate = `${mdyMatch[3]}-${mm}-${dd}`;
+      }
+    }
+    // Fallback: YYYY-MM-DD or MM-DD-YYYY style
+    if (!guessedDate) {
+      const numMatch = f.name.match(/(\d{4}[-_]\d{2}[-_]\d{2}|\d{2}[-_]\d{2}[-_]\d{4})/);
+      if (numMatch) {
+        const raw = numMatch[1].replace(/_/g, '-');
+        if (/^\d{4}/.test(raw)) guessedDate = raw;
+        else {
+          const parts = raw.split('-');
+          guessedDate = `${parts[2]}-${parts[0]}-${parts[1]}`;
+        }
+      }
+    }
+    files.push({ file: f, name: f.name, date: guessedDate, threshold: '' });
+  });
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  files.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <div>
+        <div class="file-name">${item.name}</div>
+        <div style="margin-top:0.4rem;display:flex;flex-direction:column;gap:0.3rem;">
+          <input type="date" placeholder="date" value="${item.date}" data-idx="${idx}" data-field="date" style="font-size:0.72rem">
+          <div style="display:flex;align-items:center;gap:0.4rem;">
+            <input type="number" placeholder="threshold % (optional)" min="0" max="100" value="${item.threshold}" data-idx="${idx}" data-field="threshold" style="font-size:0.72rem;flex:1;" title="Override threshold for this day">
+            ${item.threshold !== '' ? `<span class="threshold-tag">override</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <button class="remove-btn" data-idx="${idx}" title="Remove">✕</button>
+    `;
+    fileList.appendChild(div);
+  });
+
+  fileList.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const idx = +e.target.dataset.idx;
+      const field = e.target.dataset.field;
+      files[idx][field] = e.target.value;
+      if (field === 'threshold') renderFileList(); // re-render to show/hide override tag
+    });
+  });
+
+  fileList.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      files.splice(+e.currentTarget.dataset.idx, 1);
+      renderFileList();
+    });
+  });
+
+  runBtn.disabled = files.length === 0;
+}
+
+// ── CSV parsing ──────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  return lines.map(line => {
+    // Handle quoted fields
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if ((ch === ',' || ch === '\t') && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function isAnswered(val) {
+  if (!val) return false;
+  const v = val.trim();
+  return v !== '' && v !== '-' && v.toLowerCase() !== 'na' && v.toLowerCase() !== 'n/a' && v !== '0';
+}
+
+// ── Grading ───────────────────────────────────────────────────────────────
+async function readFileText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = () => rej(new Error('Failed to read ' + file.name));
+    r.readAsText(file);
+  });
+}
+
+async function calculateGrades() {
+  const globalThreshold = parseFloat(document.getElementById('globalThreshold').value) || 50;
+  const fullPoints = parseFloat(document.getElementById('fullPoints').value) ?? 2;
+
+  preview.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div>Processing…</div>';
+
+  // Sort files by date (or name if no date)
+  const sorted = [...files].sort((a, b) => {
+    if (a.date && b.date) return a.date.localeCompare(b.date);
+    return a.name.localeCompare(b.name);
+  });
+
+  // grades[email][dateLabel] = score
+  const grades = {};
+  const dateLabels = [];
+  const errors = [];
+
+  for (const item of sorted) {
+    const label = item.date || item.name.replace(/\.(csv|tsv|txt)$/i, '');
+    dateLabels.push(label);
+    const threshold = item.threshold !== '' ? parseFloat(item.threshold) : globalThreshold;
+
+    let text;
+    try { text = await readFileText(item.file); }
+    catch(e) { errors.push(e.message); continue; }
+
+    const rows = parseCSV(text);
+    if (rows.length === 0) { errors.push(`${item.name}: empty file`); continue; }
+
+    // Check if first row is a header (email in first col looks like a header if it doesn't contain @)
+    let startRow = 0;
+    if (rows[0] && rows[0][0] && !rows[0][0].includes('@')) startRow = 1;
+
+    for (let i = startRow; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length < 2) continue;
+      const email = row[0].trim().toLowerCase();
+      if (!email || !email.includes('@')) continue;
+
+      const questions = row.slice(1);
+      const answered = questions.filter(isAnswered).length;
+      const total = questions.length;
+      const pct = total > 0 ? (answered / total) * 100 : 0;
+      const score = pct >= threshold ? fullPoints : 0;
+
+      if (!grades[email]) grades[email] = {};
+      grades[email][label] = score;
+    }
+  }
+
+  // Render
+  const emails = Object.keys(grades).sort();
+
+  let html = '';
+
+  // Stats
+  const totalStudents = emails.length;
+  const totalDays = dateLabels.length;
+  const allScores = emails.flatMap(e => dateLabels.map(d => grades[e][d] ?? null)).filter(s => s !== null);
+  const earnedFull = allScores.filter(s => s === fullPoints).length;
+  const pctFull = allScores.length > 0 ? Math.round((earnedFull / allScores.length) * 100) : 0;
+
+  html += `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+      <div class="panel-title" style="margin:0;">Preview</div>
+      <button class="download-btn" id="downloadBtn">⬇ Download CSV</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-value">${totalStudents}</span><span class="stat-label">Students</span></div>
+      <div class="stat"><span class="stat-value">${totalDays}</span><span class="stat-label">Days</span></div>
+      <div class="stat"><span class="stat-value">${pctFull}%</span><span class="stat-label">Full pts rate</span></div>
+    </div>
+  `;
+
+  if (errors.length) {
+    html += errors.map(e => `<div class="error-msg">⚠ ${e}</div>`).join('');
+  }
+
+  // Table
+  html += '<div style="overflow:auto"><table><thead><tr>';
+  html += '<th>Email</th>';
+  dateLabels.forEach(d => { html += `<th>${d}</th>`; });
+  html += '<th>Total</th>';
+  html += '</tr></thead><tbody>';
+
+  emails.forEach(email => {
+    let total = 0;
+    html += `<tr><td class="email" title="${email}">${email}</td>`;
+    dateLabels.forEach(d => {
+      const score = grades[email][d];
+      if (score === undefined) {
+        html += `<td class="score-empty">—</td>`;
+      } else {
+        total += score;
+        const cls = score === fullPoints ? 'score-2' : 'score-0';
+        html += `<td class="${cls}">${score}</td>`;
+      }
+    });
+    html += `<td class="total-cell">${total}</td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+
+  preview.innerHTML = html;
+
+  // Download handler
+  document.getElementById('downloadBtn').addEventListener('click', () => downloadCSV(grades, emails, dateLabels, fullPoints));
+
+  // Store for download
+  window._gradeData = { grades, emails, dateLabels, fullPoints };
+}
+
+function downloadCSV(grades, emails, dateLabels, fullPoints) {
+  const rows = [];
+  // Header
+  rows.push(['Email', ...dateLabels, 'Total']);
+  // Data
+  emails.forEach(email => {
+    let total = 0;
+    const row = [email];
+    dateLabels.forEach(d => {
+      const score = grades[email][d];
+      if (score === undefined) { row.push(''); }
+      else { total += score; row.push(score); }
+    });
+    row.push(total);
+    rows.push(row);
+  });
+
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'clicker_grades.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+runBtn.addEventListener('click', calculateGrades);
+</script>
+</body>
+</html>
