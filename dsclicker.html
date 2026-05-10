@@ -626,8 +626,9 @@ async function calculateGrades() {
     for (let i = startRow; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.length < 2) continue;
-      const email = row[0].trim().toLowerCase();
-      if (!email || !email.includes('@')) continue;
+      const fullEmail = row[0].trim().toLowerCase();
+      if (!fullEmail || !fullEmail.includes('@')) continue;
+      const email = fullEmail.split('@')[0];
 
       const questions = row.slice(1);
       const answered = questions.filter(isAnswered).length;
