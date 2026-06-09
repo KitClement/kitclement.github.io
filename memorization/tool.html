@@ -36,6 +36,10 @@
   <select id="lettersCol"></select>
 </label>
 
+<label>Memory ability column:
+  <select id="memoryCol"></select>
+</label>
+
 <label>Condition column:
   <select id="conditionCol"></select>
 </label>
@@ -77,7 +81,18 @@
   Show summary statistics
 </label>
 
+<label>
+  Histogram grouping:
+  <select id="histogramGrouping">
+    <option value="condition" selected>Condition</option>
+    <option value="memory">Memory Ability</option>
+  </select>
+</label>
+
 <canvas id="histogramCanvas" width="950" height="520"></canvas>
+
+<h2>Memory Ability × Condition</h2>
+<div id="twoWayTable"></div>
 
 <h2>Hypothesis Testing</h2>
   
@@ -177,7 +192,7 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
 
 // ------------------ UI helpers ------------------
 function populateDropdowns(headers) {
-  ["nameCol", "lettersCol", "conditionCol"].forEach(id => {
+  ["nameCol", "lettersCol", "memoryCol", "conditionCol"].forEach(id => {
     const select = document.getElementById(id);
     select.innerHTML = "";
     headers.forEach(h => {
@@ -193,6 +208,7 @@ function setDefaultSelections(headers) {
   const defaults = {
     nameCol: "Name",
     lettersCol: "Letters",
+	memoryCol: "Memory",
     conditionCol: "Group"
   };
 
@@ -203,19 +219,36 @@ function setDefaultSelections(headers) {
   });
 }
 
+function normalizeMemory(value) {
+  const v = (value || "").toLowerCase();
+
+  if (v.includes("yes")) return "Yes";
+  if (v.includes("okay")) return "It's Okay";
+  if (v.includes("no")) return "No";
+
+  return value || "";
+}
+
 function buildProcessedData() {
   const nameCol = document.getElementById("nameCol").value;
   const lettersCol = document.getElementById("lettersCol").value;
+  const memoryCol = document.getElementById("memoryCol").value;
   const conditionCol = document.getElementById("conditionCol").value;
   const includeName = document.getElementById("includeName").checked;
   const includeLetters = document.getElementById("includeLetters").checked;
 
   processedData = rawData.map(row => {
     const out = {};
+
     if (includeName) out.Name = row[nameCol];
+
+    out.MemoryAbility = normalizeMemory(row[memoryCol]);
+
     if (includeLetters) out.Letters = row[lettersCol];
+
     out.Condition = row[conditionCol];
     out.NumberCorrect = countCorrectFromStart(row[lettersCol]);
+
     return out;
   });
 }
@@ -278,19 +311,29 @@ function drawHistograms() {
   // remove empty/undefined conditions
   processedData = processedData.filter(d => d.Condition && d.Condition.trim() !== "");
 
-  const groups = {};
-  processedData.forEach(d => {
-    if (!d.Condition) return;
+  const grouping =
+    document.getElementById("histogramGrouping").value;
 
-    const cond = d.Condition.trim().toUpperCase();
-    if (cond === "") return;
- 
-    if (!groups[cond]) groups[cond] = [];
-    groups[cond].push(d.NumberCorrect);
+  const groups = {};
+
+  processedData.forEach(d => {
+
+    let groupName;
+
+    if (grouping === "condition") {
+      groupName = d.Condition?.trim().toUpperCase();
+    } else {
+      groupName = d.MemoryAbility;
+    }
+
+    if (!groupName) return;
+
+    if (!groups[groupName]) groups[groupName] = [];
+    groups[groupName].push(d.NumberCorrect);
   });
 
   const conds = Object.keys(groups);
-  if (Object.keys(groups).length !== 2) {
+  if (grouping === "condition" && Object.keys(groups).length !== 2) {
     alert(
       `Histogram requires exactly two conditions.\n\nDetected: ${Object.keys(groups).join(", ")}`
     );
@@ -306,7 +349,10 @@ function drawHistograms() {
 
   const maxCount = Math.max(...counts.flat());
   const pad = 60;
-  const plotH = (canvas.height - pad*3)/2;
+  const numGroups = conds.length;
+  const plotH =
+    (canvas.height - pad * (numGroups + 1)) /
+    numGroups;
   const plotW = canvas.width - pad*2;
   const bw = plotW / bins.length;
 
@@ -389,6 +435,8 @@ function drawHistograms() {
     }
   });
 
+  renderTwoWayTable();
+
   renderTTestResults(groups, conds);
   
   function drawLine(val, y0, h, style) {
@@ -418,6 +466,7 @@ function downloadCSV() {
 [
   "nameCol",
   "lettersCol",
+  "memoryCol",
   "conditionCol",
   "includeName",
   "includeLetters",
@@ -426,7 +475,8 @@ function downloadCSV() {
   "showSD",
   "showStats",
   "showTTest",
-  "usePooled"
+  "usePooled",
+  "histogramGrouping"
 ].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -627,6 +677,72 @@ function tInv(p, df, tol = 1e-8) {
   }
 
   return (low + high) / 2;
+}
+
+function renderTwoWayTable() {
+
+  const div = document.getElementById("twoWayTable");
+
+  const memories = ["Yes", "It's Okay", "No"];
+  const conditions = ["JFK", "JFKC"];
+
+  const counts = {};
+
+  memories.forEach(m => {
+    counts[m] = {};
+    conditions.forEach(c => counts[m][c] = 0);
+  });
+
+  processedData.forEach(row => {
+
+    const mem = row.MemoryAbility;
+    const cond = row.Condition?.trim().toUpperCase();
+
+    if (
+      counts[mem] &&
+      counts[mem][cond] !== undefined
+    ) {
+      counts[mem][cond]++;
+    }
+  });
+
+  let html = `
+    <table>
+      <tr>
+        <th>Memory Ability</th>
+        <th>JFK</th>
+        <th>JFKC</th>
+        <th>Total</th>
+      </tr>
+  `;
+
+  let grandTotal = 0;
+
+  memories.forEach(mem => {
+
+    const jfk = counts[mem]["JFK"];
+    const jfkc = counts[mem]["JFKC"];
+    const total = jfk + jfkc;
+	const pJFK = total > 0 ? (100 * jfk / total).toFixed(1) : "0.0";
+
+    const pJFKC = total > 0 ? (100 * jfkc / total).toFixed(1) : "0.0";
+    grandTotal += total;
+
+    html += `
+      <tr>
+        <td>${mem}</td>
+        <td>${jfk} (${pJFK}%)</td>
+		<td>${jfkc} (${pJFKC}%)</td>
+        <td>${total}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+    </table>
+  `;
+
+  div.innerHTML = html;
 }
   
 </script>
