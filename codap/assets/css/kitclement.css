@@ -32,6 +32,10 @@ body {
   color: black;
 }
 
+.topnav a.right {
+  float: right;
+}
+
 .bar {
   touch-action: none;
 }
