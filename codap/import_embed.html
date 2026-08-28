@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSV Import | CODAP Sampler Companion</title>
+  <link rel="stylesheet" href="assets/css/kitclement.css">
+  <style>
+    /* Opaque background covers the embed watermark */
+    html, body { background: #ffffff; }
+  </style>
+</head>
+
+<body>
+
+<div class="topnav">
+  <a href="mixer_embed.html">Mixer Builder</a>
+  <a href="import_embed.html" class="active">CSV Import</a>
+  <a href="help_embed.html">Help</a>
+</div>
+
+<div class="pgs">
+  <div style="margin-top: 1em;">
+    <input type="file" id="csvfile" accept=".csv">
+  </div>
+
+  <br>
+
+  <select id="variablePicker"></select>
+
+  <br><br>
+
+  <label for="commaMode"><strong>Commas inside cells:</strong></label>
+  <select id="commaMode">
+    <option value="delete" selected>Delete all commas</option>
+    <option value="semicolon">Replace with semicolon (;)</option>
+    <option value="colon">Replace with colon (:)</option>
+    <option value="slash">Replace with forward slash (/)</option>
+  </select>
+
+<br><br>
+  <textarea
+    id="columnOutput"
+    rows="8"
+    style="width:100%;"
+    placeholder="Column values will appear here..."
+  ></textarea>
+
+  <br><br>
+
+  <button id="copyCol">Copy to Clipboard</button>
+</div>
+
+<script src="import.js"></script>
+</body>
+</html>

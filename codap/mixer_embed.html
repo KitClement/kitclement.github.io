@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mixer Builder | CODAP Sampler Companion</title>
+  <link rel="stylesheet" href="assets/css/kitclement.css">
+  <style>
+    /* Opaque background covers the embed watermark */
+    html, body { background: #ffffff; }
+  </style>
+</head>
+
+<body>
+
+<div class="topnav">
+  <a href="mixer_embed.html" class="active">Mixer Builder</a>
+  <a href="import_embed.html">CSV Import</a>
+  <a href="help_embed.html">Help</a>
+</div>
+
+<div class="pgs">
+  <div style="margin-top: 1em; margin-bottom: 1em;">
+    <button id="removeCat">−</button>
+    <input
+      type="number"
+      id="catCount"
+      value="4"
+      min="1"
+      style="width:60px; text-align:center;"
+    >
+    <button id="addCat">+</button>
+    <span>Categories</span>
+  </div>
+
+  <div
+    id="chart"
+    style="
+      display:flex;
+      align-items:flex-end;
+      gap:8px;
+      height:300px;
+      border-left:1px solid #ccc;
+      border-bottom:1px solid #ccc;
+      padding:10px;
+    "
+  ></div>
+
+  <h3>CODAP Sampler Values</h3>
+  <textarea
+    id="output"
+    rows="5"
+    style="width:100%;"
+    readonly
+  ></textarea>
+
+  <br><br>
+  <button id="copyOutput">Copy to Clipboard</button>
+</div>
+
+<script src="mixer.js"></script>
+</body>
+</html>
