@@ -433,7 +433,7 @@
       <div class="setting-row">
         <div>
           <div class="setting-label">Default threshold</div>
-          <div class="setting-hint">≥ X% questions answered = 2 pts</div>
+          <div class="setting-hint">≥ X% questions answered = full pts</div>
         </div>
         <div class="setting-input">
           <input type="number" id="globalThreshold" value="50" min="0" max="100" step="1">
@@ -448,6 +448,22 @@
         <div class="setting-input">
           <input type="number" id="fullPoints" value="1" min="0" max="100" step="1">
         </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <div class="panel-title">Canvas Gradebook · optional</div>
+
+      <div class="dropzone" id="canvasDropzone">
+        <input type="file" id="canvasInput" accept=".csv">
+        <span class="drop-icon">🎓</span>
+        <div class="drop-label">Drop Canvas gradebook CSV or <strong>click to browse</strong></div>
+      </div>
+
+      <div class="file-list" id="canvasFileList"></div>
+      <div class="setting-hint" style="margin-top:0.75rem;line-height:1.5;">
+        Upload a copy of your Canvas gradebook export. Clicker totals are matched to students by
+        SIS Login / User ID and written into the clicker grade column, ready to re-import.
       </div>
     </div>
 
@@ -466,6 +482,7 @@
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 const files = []; // { file, name, date, threshold (optional) }
+let canvasFile = null; // the uploaded Canvas gradebook File, or null
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const dropzone = document.getElementById('dropzone');
@@ -473,6 +490,9 @@ const fileInput = document.getElementById('fileInput');
 const fileList  = document.getElementById('fileList');
 const runBtn    = document.getElementById('runBtn');
 const preview   = document.getElementById('previewPanel');
+const canvasDropzone = document.getElementById('canvasDropzone');
+const canvasInput    = document.getElementById('canvasInput');
+const canvasFileList = document.getElementById('canvasFileList');
 
 // ── Drag & drop ──────────────────────────────────────────────────────────
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
@@ -483,6 +503,36 @@ dropzone.addEventListener('drop', e => {
   addFiles([...e.dataTransfer.files]);
 });
 fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+
+// ── Canvas gradebook drag & drop ───────────────────────────────────────────
+canvasDropzone.addEventListener('dragover', e => { e.preventDefault(); canvasDropzone.classList.add('drag-over'); });
+canvasDropzone.addEventListener('dragleave', () => canvasDropzone.classList.remove('drag-over'));
+canvasDropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  canvasDropzone.classList.remove('drag-over');
+  const f = [...e.dataTransfer.files].find(f => /\.csv$/i.test(f.name));
+  if (f) { canvasFile = f; renderCanvasFile(); }
+});
+canvasInput.addEventListener('change', () => {
+  if (canvasInput.files[0]) { canvasFile = canvasInput.files[0]; renderCanvasFile(); }
+  canvasInput.value = '';
+});
+
+function renderCanvasFile() {
+  canvasFileList.innerHTML = '';
+  if (!canvasFile) return;
+  const div = document.createElement('div');
+  div.className = 'file-item';
+  div.innerHTML = `
+    <div><div class="file-name">${canvasFile.name}</div></div>
+    <button class="remove-btn" id="canvasRemove" title="Remove">✕</button>
+  `;
+  canvasFileList.appendChild(div);
+  document.getElementById('canvasRemove').addEventListener('click', () => {
+    canvasFile = null;
+    renderCanvasFile();
+  });
+}
 
 function addFiles(newFiles) {
   newFiles.forEach(f => {
@@ -580,6 +630,115 @@ function isAnswered(val) {
   return v !== '' && v !== '-' && v.toLowerCase() !== 'na' && v.toLowerCase() !== 'n/a' && v !== '0';
 }
 
+// ── Canvas gradebook CSV parse/serialize ────────────────────────────────────
+// Proper CSV parser: preserves cells verbatim (no trimming) and handles
+// doubled-quote ("") escapes, so quoted names and leading spaces round-trip.
+function parseCanvasCSV(text) {
+  const rows = [];
+  let row = [], cur = '', inQ = false;
+  const s = text.replace(/^﻿/, ''); // strip BOM
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (s[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') {
+      inQ = true;
+    } else if (ch === ',') {
+      row.push(cur); cur = '';
+    } else if (ch === '\r') {
+      // handled by \n or as bare CR
+    } else if (ch === '\n') {
+      row.push(cur); cur = ''; rows.push(row); row = [];
+    } else {
+      cur += ch;
+    }
+  }
+  // flush trailing cell/row (only if there's leftover content)
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+function toCSV(rows) {
+  return rows
+    .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+}
+
+// Merge clicker totals into a Canvas gradebook.
+// totals: { username(lowercased) : totalPoints }
+// Returns { csv, matched, unmatchedStudents, unmatchedClickers, targetHeader } or { error }.
+function buildCanvasCSV(canvasText, totals) {
+  const rows = parseCanvasCSV(canvasText);
+  if (rows.length < 2) return { error: 'Gradebook appears empty or unreadable.' };
+
+  const header = rows[0];
+  const isAssign = h => /\(\d+\)\s*$/.test(String(h || ''));
+  const assignmentCols = header.map((h, i) => (isAssign(h) ? i : -1)).filter(i => i >= 0);
+  if (assignmentCols.length === 0) {
+    return { error: 'No grade-item column found. Expected a header ending in an id, e.g. "Clicker Points (1765945)".' };
+  }
+  const identityCount = Math.min(...assignmentCols);
+  let targetCol = assignmentCols.find(i => /clicker/i.test(String(header[i])));
+  if (targetCol === undefined) targetCol = assignmentCols[0];
+
+  // Columns to keep: identity block (A..first assignment) + the target grade column.
+  const keepCols = [];
+  for (let c = 0; c < identityCount; c++) keepCols.push(c);
+  keepCols.push(targetCol);
+
+  const findCol = (re, fallback) => {
+    const i = header.findIndex(h => re.test(String(h || '')));
+    return i >= 0 ? i : fallback;
+  };
+  const loginIdx = findCol(/sis\s*login\s*id/i, 3);
+  const userIdx  = findCol(/sis\s*user\s*id/i, 2);
+
+  // Second header row (Points Possible) is preserved verbatim when present.
+  const hasSecondHeader = rows[1] && /points possible/i.test(String(rows[1][0] || ''));
+  const dataStart = hasSecondHeader ? 2 : 1;
+
+  const pick = (row, cols) => cols.map(c => (row && row[c] !== undefined ? row[c] : ''));
+
+  const out = [pick(header, keepCols)];
+  if (hasSecondHeader) out.push(pick(rows[1], keepCols));
+
+  let matched = 0, unmatchedStudents = 0;
+  const matchedKeys = new Set();
+
+  for (let i = dataStart; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => String(c || '').trim() === '')) continue; // skip blank lines
+
+    const k1 = String(row[loginIdx] || '').trim().toLowerCase();
+    const k2 = String(row[userIdx] || '').trim().toLowerCase();
+    let key = null;
+    if (k1 && Object.prototype.hasOwnProperty.call(totals, k1)) key = k1;
+    else if (k2 && Object.prototype.hasOwnProperty.call(totals, k2)) key = k2;
+
+    const outRow = keepCols.map(c => {
+      if (c === targetCol) return key !== null ? String(totals[key]) : '';
+      return row[c] !== undefined ? row[c] : '';
+    });
+    out.push(outRow);
+
+    if (key !== null) { matched++; matchedKeys.add(key); }
+    else unmatchedStudents++;
+  }
+
+  const unmatchedClickers = Object.keys(totals).filter(k => !matchedKeys.has(k));
+
+  return {
+    csv: toCSV(out),
+    matched,
+    unmatchedStudents,
+    unmatchedClickers,
+    targetHeader: header[targetCol],
+  };
+}
+
 // ── Grading ───────────────────────────────────────────────────────────────
 async function readFileText(file) {
   return new Promise((res, rej) => {
@@ -644,6 +803,23 @@ async function calculateGrades() {
   // Render
   const emails = Object.keys(grades).sort();
 
+  // Per-student totals (sum across days) — same values shown in the Total column.
+  const totals = {};
+  emails.forEach(email => {
+    totals[email] = dateLabels.reduce((sum, d) => sum + (grades[email][d] ?? 0), 0);
+  });
+
+  // Optional: merge into an uploaded Canvas gradebook.
+  let canvasResult = null;
+  if (canvasFile) {
+    try {
+      const canvasText = await readFileText(canvasFile);
+      canvasResult = buildCanvasCSV(canvasText, totals);
+    } catch (e) {
+      canvasResult = { error: e.message };
+    }
+  }
+
   let html = '';
 
   // Stats
@@ -656,7 +832,10 @@ async function calculateGrades() {
   html += `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
       <div class="panel-title" style="margin:0;">Preview</div>
-      <button class="download-btn" id="downloadBtn">⬇ Download CSV</button>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button class="download-btn" id="downloadBtn">⬇ Download CSV</button>
+        ${canvasResult && !canvasResult.error ? `<button class="download-btn" id="downloadCanvasBtn">⬇ Download Canvas CSV</button>` : ''}
+      </div>
     </div>
     <div class="stats-bar">
       <div class="stat"><span class="stat-value">${totalStudents}</span><span class="stat-label">Students</span></div>
@@ -667,6 +846,18 @@ async function calculateGrades() {
 
   if (errors.length) {
     html += errors.map(e => `<div class="error-msg">⚠ ${e}</div>`).join('');
+  }
+
+  if (canvasResult) {
+    if (canvasResult.error) {
+      html += `<div class="error-msg">⚠ Canvas gradebook: ${canvasResult.error}</div>`;
+    } else {
+      const uc = canvasResult.unmatchedClickers;
+      html += `<div class="info-msg">🎓 Canvas: matched <strong>${canvasResult.matched}</strong> student(s) into “${canvasResult.targetHeader}”. ` +
+              `${canvasResult.unmatchedStudents} gradebook student(s) had no clicker record (left blank).` +
+              (uc.length ? ` ${uc.length} clicker record(s) not found in the gradebook: ${uc.slice(0, 10).join(', ')}${uc.length > 10 ? '…' : ''}` : '') +
+              `</div>`;
+    }
   }
 
   // Table
@@ -699,8 +890,23 @@ async function calculateGrades() {
   // Download handler
   document.getElementById('downloadBtn').addEventListener('click', () => downloadCSV(grades, emails, dateLabels, fullPoints));
 
+  if (canvasResult && !canvasResult.error) {
+    const canvasName = (canvasFile.name || 'canvas_gradebook.csv').replace(/\.csv$/i, '') + '_clicker.csv';
+    document.getElementById('downloadCanvasBtn').addEventListener('click', () => downloadBlob(canvasResult.csv, canvasName));
+  }
+
   // Store for download
-  window._gradeData = { grades, emails, dateLabels, fullPoints };
+  window._gradeData = { grades, emails, dateLabels, fullPoints, totals };
+}
+
+function downloadBlob(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function downloadCSV(grades, emails, dateLabels, fullPoints) {
